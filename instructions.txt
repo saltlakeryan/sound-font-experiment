@@ -1,0 +1,16 @@
+How to Build and Run the Container
+You can execute the entire pipeline with two standard Docker terminal commands. Use a volume mount (-v) to bind a local folder on your host machine to /app/output/ inside the container. This ensures all generated files appear on your local drive instantly. 
+
+Medium
+·Pat B
+Run these commands in the terminal directory containing your files:
+bash
+# 1. Build the engine image
+docker build -t soundfont-factory .
+
+# 2. Run container and map output directory directly to your local computer's file system
+docker run --rm -v "$(pwd)/output:/app/output" soundfont-factory
+Use code with caution.
+Once execution wraps up, a new folder named output will appear in your project directory containing your custom compiled multi-sampled SynthOrchestra.sf2, the LilyPond sheets, and the final synchronized audio production track mary_render.wav. 
+
+www.aziogas.lt
