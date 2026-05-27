@@ -122,13 +122,36 @@ def write_lilypond_file(path):
 }"""
     with open(path, 'w') as f: f.write(ly_content)
 
-def merge_sfz_to_single_sf2(sfz_inputs, output_sf2):
+def old_merge_sfz_to_single_sf2(sfz_inputs, output_sf2):
     print("Compiling SoundFont layers using headless Polyphone window runner...")
     # xvfb-run provides a virtual display allocation to avoid GUI initialization crashes
     command = ["xvfb-run", POLYPHONE_EXE, "-1", "-o", output_sf2]
     for sfz in sfz_inputs:
         command.extend(["-i", sfz])
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def merge_sfz_to_single_sf2(sfz_inputs, output_sf2):
+    print("Compiling SoundFont layers using headless Polyphone window runner...")
+
+    # We specify server parameters to guarantee a valid 24-bit visual depth environment for Qt
+    command = [
+        "xvfb-run",
+        "--auto-servernum",
+        "--server-args=-screen 0 1024x768x24",
+        POLYPHONE_EXE,
+        "-1",
+        "-o",
+        output_sf2
+    ]
+
+    for sfz in sfz_inputs:
+        command.extend(["-i", sfz])
+
+    # We remove stdout/stderr muting temporarily during debugging so you can see any warning logs
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Polyphone CLI Output Logs:\n{result.stdout}\n{result.stderr}")
+        raise RuntimeError(f"Polyphone compiler failed with exit code {result.returncode}")
 
 def compile_lilypond(ly_path):
     print("Compiling score via LilyPond...")
