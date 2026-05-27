@@ -48,13 +48,23 @@ def main():
 
         # 3. Create a FluidSynth runtime command configuration
         # This maps each independent SF2 file to its respective MIDI program change channel slot
+#        synth_cmd_path = os.path.join(WORKING_DIR, "synth_map.txt")
+#        with open(synth_cmd_path, 'w') as f:
+#            for preset_idx in range(len(waveforms)):
+#                f.write(f"load {WORKING_DIR}instrument_{preset_idx}.sf2\n")
+#                # Syntax: select <channel> <soundfont_id> <bank> <preset>
+#                # FluidSynth soundfonts are 1-indexed based on their load sequence order
+#                f.write(f"select {preset_idx} {preset_idx + 1} 0 0\n")
+        # 3. Create a FluidSynth runtime command configuration for PURE SAWTOOTH
         synth_cmd_path = os.path.join(WORKING_DIR, "synth_map.txt")
         with open(synth_cmd_path, 'w') as f:
-            for preset_idx in range(len(waveforms)):
-                f.write(f"load {WORKING_DIR}instrument_{preset_idx}.sf2\n")
-                # Syntax: select <channel> <soundfont_id> <bank> <preset>
-                # FluidSynth soundfonts are 1-indexed based on their load sequence order
-                f.write(f"select {preset_idx} {preset_idx + 1} 0 0\n")
+            # Load only the sawtooth instrument (Index 1) as the absolute default
+            f.write(f"load {WORKING_DIR}instrument_1.sf2\n")
+            
+            # Select the sawtooth soundfont (Soundfont ID 1) for all four stanzas
+            for channel_idx in range(4):
+                f.write(f"select {channel_idx} 1 0 0\n")
+
 
         # 4. Write the structural LilyPond score
         ly_path = os.path.join(WORKING_DIR, "mary.ly")
