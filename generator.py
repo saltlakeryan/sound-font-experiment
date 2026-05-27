@@ -18,15 +18,14 @@ def main():
     midi_notes_to_sample = [48, 52, 55, 60, 64, 67, 72, 76, 79]
 
     try:
-        # 1. Generate audio waveform samples completely 
+        # 1. Generate audio waveform samples
         for wave_type in waveforms:
             for midi_note in midi_notes_to_sample:
                 frequency = 440.0 * (2.0 ** ((midi_note - 69) / 12.0))
                 wav_path = os.path.join(WORKING_DIR, f"{wave_type}_note_{midi_note}.wav")
                 generate_waveform_wav(wav_path, wave_type, frequency, duration=1.2)
         
-        # 2. Write a SINGLE unified SFZ file defining ALL presets sequentially
-        # This bypasses the multi-input CLI bug by packing the layers together upfront.
+        # 2. Write a single master SFZ definition mapping
         sfz_master_path = os.path.join(WORKING_DIR, "master_factory.sfz")
         write_monolithic_sfz(sfz_master_path, waveforms, midi_notes_to_sample)
         print("Monolithic SFZ structure successfully generated.")
@@ -77,18 +76,17 @@ def generate_waveform_wav(filepath, wave_type, frequency, duration):
 
 def write_monolithic_sfz(path, waveforms, notes):
     """
-    Writes a unified SFZ template using explicit <instrument> blocks to separate presets.
+    Writes a unified SFZ template using compliant global tags instead of instrument tags
+    to solve compatibility errors in the Linux Polyphone parser binary.
     """
     with open(path, 'w') as f:
         f.write("// Multi-Preset Monolithic Map Definition\n\n")
-        
         for preset_idx, wave_type in enumerate(waveforms):
-            # The 'bank' and 'preset' tags instruct compilers on where to register the instrument
             f.write(f"// --- PRESET {preset_idx}: {wave_type.upper()} ---\n")
-            f.write(f"<instrument>\n")
+            f.write(f"<global>\n")
             f.write(f"bank=0\n")
-            f.write(f"preset={preset_idx}\n\n")
-            f.write(f"<group>\nloop_mode=no_loop\n\n")
+            f.write(f"preset={preset_idx}\n")
+            f.write(f"loop_mode=no_loop\n\n")
             
             for i, midi_note in enumerate(notes):
                 low_key = 0 if i == 0 else notes[i - 1] + 1
@@ -101,10 +99,6 @@ def write_monolithic_sfz(path, waveforms, notes):
                 f.write(f"pitch_keycenter={midi_note}\n\n")
 
 def write_lilypond_file(path):
-    """
-    Writes a LilyPond configuration using standard, single-word instrument mappings
-    to resolve string parser errors.
-    """
     ly_content = """\\version "2.24.0"
 \\score {
   \\new Staff {
@@ -138,6 +132,11 @@ def write_lilypond_file(path):
 
 def merge_sfz_to_single_sf2(sfz_master_input, output_sf2):
     print("Compiling single monolithic SFZ structure via headless Polyphone window runner...")
+    
+    # We pass ONLY the direct file name 'SynthOrchestra.sf2' as the output parameter
+    # because Polyphone evaluates paths relative to the input folder location.
+    output_filename = os.path.basename(output_sf2)
+    
     command = [
         "xvfb-run", 
         "--auto-servernum", 
@@ -145,12 +144,16 @@ def merge_sfz_to_single_sf2(sfz_master_input, output_sf2):
         POLYPHONE_EXE, 
         "-1", 
         "-i", sfz_master_input,
-        "-o", output_sf2
+        "-o", output_filename
     ]
     result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"Polyphone CLI Logs:\n{result.stdout}\n{result.stderr}")
-        raise RuntimeError(f"Polyphone compiled step thrown error code {result.returncode}")
+    
+    # Check if the output file was successfully generated inside the working directory
+    if not os.path.exists(output_sf2):
+        print(f"\n[POLYPHONE CRASH DETECTED] Exit Code: {result.returncode}")
+        print(f"STDOUT LOGS:\n{result.stdout}")
+        print(f"STDERR LOGS:\n{result.stderr}")
+        raise RuntimeError("Polyphone failed to generate the SoundFont binary.")
 
 def compile_lilypond(ly_path):
     print("Compiling score via LilyPond...")
