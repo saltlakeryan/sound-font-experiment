@@ -5,12 +5,13 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV QT_QPA_PLATFORM=offscreen
 
-# Install core audio engines, compilation tools, system fonts, and audio client backends
+# Install core engines, compilation tools, system fonts, audio backends, and xauth
 RUN apt-get update && apt-get install -y --no-install-recommends \
     lilypond \
     fluidsynth \
     polyphone \
     xvfb \
+    xauth \
     libasound2 \
     shared-mime-info \
     fonts-freefont-ttf \
