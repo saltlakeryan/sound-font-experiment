@@ -97,23 +97,24 @@ class SoundFontBuilder2:
         inst_data += struct.pack('<20sH', b'EOI', 10)
         inst = self._pack_chunk(b'inst', inst_data)
 
-        # 6. ibag: 44 bytes (11 records x 4 bytes)
+        # 6. ibag: 44 bytes (11 records x 4 bytes -> 1 global zone + 9 sample zones + 1 terminal)
         ibag_data = io.BytesIO()
 
-        # Record 0 (Global Instrument Zone)
+        # Record 0 (Global Instrument Zone): Points to gen index 0, mod index 0
         ibag_data.write(struct.pack('<HH', 0, 0))
 
-        # Records 1 to 9 (Sample Zones)
+        # Records 1 to 9 (Sample Zones): Generator index is 2, Modulator index increments (3, 6, 9...)
         for i in range(len(self.samples)):
             mod_index = 3 + (i * 3)
-            # PACKING ORDER: Modulator index FIRST, Generator index SECOND
-            ibag_data.write(struct.pack('<HH', mod_index, 2))
+            # Standard structural formatting order: Generator FIRST, Modulator SECOND
+            ibag_data.write(struct.pack('<HH', 2, mod_index))
 
-        # Record 10 (Terminal Instrument Bag Record)
+        # Record 10 (Terminal Instrument Bag Record): Continues pattern to end of block
         terminal_mod_index = 3 + (len(self.samples) * 3) # 30 (0x1e00)
-        ibag_data.write(struct.pack('<HH', terminal_mod_index, 2))
+        ibag_data.write(struct.pack('<HH', 2, terminal_mod_index))
 
         ibag = self._pack_chunk(b'ibag', ibag_data.getvalue())
+
 
         # 7. imod: 30 bytes (Constant/Unchanged)
         imod_data = b'\x02\x05\x30\x00\x00\x00\x00\x00\x02\x01\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
