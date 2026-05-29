@@ -21,26 +21,34 @@ def main():
         
         # Step 2: Assemble separate SoundFonts via SoundFont Builder
         # Inside your generate-part1.py main loop:
-        builder = SoundFontBuilder2(name="instrument_0")
+        builder = SoundFontBuilder2(name="preset_0")
         accumulated_pcm = b""
         current_index = 0
+
+        # SoundFont 2 spec mandatory 46 zero-samples padding (46 * 2 bytes = 92 bytes)
+        SF2_SAMPLE_PADDING = b'\x00' * 92
 
         for midi_note in midi_notes_to_sample:
             wav_path = os.path.join(WORKING_DIR, f"sine_note_{midi_note}.wav")
 
-            # Extract raw data from your audio engine output
             with open(wav_path, 'rb') as f:
-                f.seek(44) # Skip standard 44-byte WAV header to grab pure PCM bytes
+                f.seek(44) # Skip standard 44-byte WAV header
                 pcm_bytes = f.read()
 
-            start_sample = current_index
-            end_sample = start_sample + (len(pcm_bytes) // 2) # 16-bit = 2 bytes per sample
-            current_index = end_sample
+            # Pad this specific sample block
+            padded_pcm_bytes = pcm_bytes + SF2_SAMPLE_PADDING
 
-            accumulated_pcm += pcm_bytes
+            start_sample = current_index
+            # Calculate end point using the unpadded pure PCM length
+            end_sample = start_sample + (len(pcm_bytes) // 2)
+
+            # Advance the master sample frame index tracking pointer past the padding
+            current_index = start_sample + (len(padded_pcm_bytes) // 2)
+
+            accumulated_pcm += padded_pcm_bytes
             builder.add_sample(pcm_bytes, 44100, midi_note, start_sample, end_sample)
 
-        # Output directly without dependencies
+        # Output directly with perfectly spaced samples
         builder.write_sf2(os.path.join(WORKING_DIR, "instrument_0b.sf2"), accumulated_pcm)
 
 

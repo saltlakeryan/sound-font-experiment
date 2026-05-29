@@ -30,13 +30,25 @@ class SoundFontBuilder2:
         return b'LIST' + struct.pack('<I', size) + form_type + sub_chunks_data
 
     def build_info_list(self) -> bytes:
-        # Matches 112 bytes list size perfectly
-        ifil = self._pack_chunk(b'ifil', struct.pack('<HH', 2, 1)) 
-        icmt = self._pack_chunk(b'ICMT', b'Created with Polyphone\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00') 
-        inam = self._pack_chunk(b'INAM', b'Preset 0\x00\x00') 
-        isft = self._pack_chunk(b'ISFT', b'Polyphone\x00') 
-        isng = self._pack_chunk(b'isng', b'SFBK\x00\x00\x00\x00') 
-        
+        # 1. ifil: Version 2.4 (0200 0400)
+        ifil = self._pack_chunk(b'ifil', struct.pack('<HH', 2, 4))
+
+        # 2. ICMT: Exact matching comment string (36 bytes total)
+        icmt_bytes = b'Sf2 imported from sfz by Polyphone\x00\x00'
+        icmt = self._pack_chunk(b'ICMT', icmt_bytes)
+
+        # 3. INAM: Exact matching name string (10 bytes total)
+        inam_bytes = b'preset_0\x00\x00'
+        inam = self._pack_chunk(b'INAM', inam_bytes)
+
+        # 4. ISFT: Sound engine maker string (10 bytes total)
+        isft_bytes = b'Polyphone\x00'
+        isft = self._pack_chunk(b'ISFT', isft_bytes)
+
+        # 5. isng: Sound engine target (8 bytes total -> 454d 5538 3033 3000)
+        isng_bytes = b'EMU8000\x00'
+        isng = self._pack_chunk(b'isng', isng_bytes)
+
         return self._pack_list(b'INFO', ifil + icmt + inam + isft + isng)
 
     def build_sdta_list(self, raw_pcm_data: bytes) -> bytes:
