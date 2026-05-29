@@ -64,36 +64,72 @@ class SoundFontBuilder2:
         return self._pack_list(b'sdta', smpl)
 
     def build_pdta_list(self) -> bytes:
-        # phdr: 76 bytes (2 records x 38 bytes)
-        phdr_data = struct.pack('<20sHHHIII', self.name, 0, 0, 0, 0, 0, 0)
+        preset_name = b'preset_0'.ljust(20, b'\x00')
+        instrument_name = b'instrument_0'.ljust(20, b'\x00')
+
+        # 1. phdr: 76 bytes (2 records x 38 bytes)
+        phdr_data = struct.pack('<20sHHHIII', preset_name, 0, 0, 0, 0, 0, 0)
         phdr_data += struct.pack('<20sHHHIII', b'EOP', 0, 0, 0, 0, 0, 0)
         phdr = self._pack_chunk(b'phdr', phdr_data)
 
-        # pbag: 12 bytes (3 records x 4 bytes)
-        pbag_data = struct.pack('<HH', 0, 0) + struct.pack('<HH', 1, 0) + struct.pack('<HH', 2, 0)
+        # 2. pbag: 12 bytes (3 records x 4 bytes)
+        pbag_data = struct.pack('<HH', 0, 0)  # Zone 0
+        pbag_data += struct.pack('<HH', 0, 0) # Zone 1 (Points to generators starting at index 0)
+        pbag_data += struct.pack('<HH', 2, 0) # Terminal (Points to index 2)
         pbag = self._pack_chunk(b'pbag', pbag_data)
 
-        # pmod: 10 bytes (1 terminal record x 10 bytes)
+        # 3. pmod: 10 bytes (1 terminal record)
         pmod_data = struct.pack('<HHhHH', 0, 0, 0, 0, 0)
         pmod = self._pack_chunk(b'pmod', pmod_data)
 
-        # pgen: 12 bytes (3 records x 4 bytes)
-        pgen_data = struct.pack('<HH', 41, 0) + struct.pack('<HH', 43, 0) + struct.pack('<HH', 0, 0)
+        # 4. pgen: 12 bytes (3 records x 4 bytes)
+        # Match polyphone ordering exactly: Key Range (43) then Instrument (41)
+        pgen_data = struct.pack('<BBH', 43, 127, 0) # Key Range: 0 to 127 (007f)
+        pgen_data += struct.pack('<Hh', 41, 0)      # Instrument ID: 0
+        pgen_data += struct.pack('<HH', 0, 0)       # Terminal
         pgen = self._pack_chunk(b'pgen', pgen_data)
 
-        # inst: 44 bytes (2 records x 22 bytes)
-        inst_data = struct.pack('<20sH', self.name, 0) + struct.pack('<20sH', b'EOI', 0)
+        # 5. inst: 44 bytes (2 records x 22 bytes)
+        inst_data = struct.pack('<20sH', instrument_name, 0)
+        inst_data += struct.pack('<20sH', b'EOI', 0)
         inst = self._pack_chunk(b'inst', inst_data)
 
-        # Explicit byte tables to prevent nested tuple size issues
-        ibag = self._pack_chunk(b'ibag', b'\x00' * 44)
-        imod = self._pack_chunk(b'imod', b'\x00' * 30)
-        igen = self._pack_chunk(b'igen', b'\x00' * 112)
+        # 6. ibag: 44 bytes (11 records x 4 bytes -> 9 samples + 1 global/empty + 1 terminal)
+        ibag_data = io.BytesIO()
+        ibag_data.write(struct.pack('<HH', 0, 0)) # Global zone splits
+        for i in range(len(self.samples)):
+            # Generator index increments by 3 for each sample zone mapping
+            ibag_data.write(struct.pack('<HH', 2 + (i * 3), 0))
+        ibag_data.write(struct.pack('<HH', 2 + (len(self.samples) * 3), 0)) # Terminal
+        ibag = self._pack_chunk(b'ibag', ibag_data.getvalue())
 
-        # shdr: 460 bytes (10 records x 46 bytes) -> 9 samples + 1 terminal
+        # 7. imod: 30 bytes (3 records x 10 bytes)
+        # Matches Polyphone's unique default modulator definition seen at 0x00e8dd0
+        imod_data = b'\x02\x05\x30\x00\x00\x00\x00\x00\x02\x01\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        imod = self._pack_chunk(b'imod', imod_data)
+
+        # 8. igen: 112 bytes (28 records x 4 bytes -> 27 generators + 1 terminal)
+        # Each of your 9 samples gets exactly 3 generators: Key Range (43), Overriding Root Key (58), Sample ID (53)
+        igen_data = io.BytesIO()
+
+        # Calculate key boundaries dynamically for your 9 core notes
+        notes = [s['pitch'] for s in self.samples]
+        for i, s in enumerate(self.samples):
+            # Define low/high keyboard tracking split bounds per sample zone
+            low_key = notes[max(0, i-1)] if i > 0 else 0
+            high_key = notes[min(len(notes)-1, i+1)] if i < len(notes)-1 else 127
+
+            igen_data.write(struct.pack('<BBH', 43, high_key, low_key)) # Key Range (43)
+            igen_data.write(struct.pack('<Hh', 58, s['pitch']))         # Root Key (58)
+            igen_data.write(struct.pack('<Hh', 53, i))                  # Sample ID (53) pointer
+
+        igen_data.write(struct.pack('<HH', 0, 0)) # Terminal
+        igen = self._pack_chunk(b'igen', igen_data.getvalue())
+
+        # 9. shdr: 460 bytes (10 records x 46 bytes)
         shdr_data = io.BytesIO()
         for i, s in enumerate(self.samples):
-            shdr_data.write(struct.pack('<20sIIIIiBBHH', 
+            shdr_data.write(struct.pack('<20sIIIIiBBHH',
                 f"sample_{i}".encode('ascii').ljust(20, b'\x00'),
                 s['start'], s['end'], s['start'], s['end'],
                 s['rate'], s['pitch'], 0, 0, 1
@@ -103,6 +139,7 @@ class SoundFontBuilder2:
 
         pdta_payload = phdr + pbag + pmod + pgen + inst + ibag + imod + igen + shdr
         return self._pack_list(b'pdta', pdta_payload)
+
 
     def write_sf2(self, output_path: str, raw_pcm_data: bytes):
         info_list = self.build_info_list()
