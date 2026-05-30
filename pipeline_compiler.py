@@ -2,7 +2,7 @@ import os
 import struct
 from soundfont_builder2 import SoundFontBuilder2
 
-def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, output_name: str):
+def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, output_name: str, sample_rate: int = 44100):
     """
     Dynamically assembles an arbitrary list of audio waveforms and MIDI pitch targets 
     into a consolidated multi-preset SoundFont file.
@@ -43,15 +43,9 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
             
             accumulated_pcm += padded_pcm_bytes
 
-            # FIX: Calculate keyboard zone boundaries dynamically based on note positioning 
-            # instead of using fixed single instrument offsets.
-            # Low key grabs the previous note value + 1, High key caps at current midi note.
+            # Calculate individual local keyboard zone boundaries dynamically
             low_key = 0 if i == 0 else sorted_notes[i-1] + 1
             high_key = 127 if i == len(sorted_notes) - 1 else midi_note
-
-            # Piper TTS defaults to 22050Hz. Let's make this dynamic by inspecting the WAV meta,
-            # or auto-detecting if it's a vocal track!
-            sample_rate = 22050 if wave_type == "vocal" else 44100
 
             preset_payload["samples"].append({
                 "wave_type": wave_type,
@@ -61,7 +55,7 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
                 "end_key": high_key,
                 "start": start_sample,
                 "end": end_sample,
-                "rate": sample_rate
+                "rate": sample_rate  # FIX: Now driven entirely by the function argument
             })
         
         # Commit complete instrument layout to the master preset bank

@@ -60,7 +60,8 @@ def main():
             waveforms=waveforms,
             midi_notes=midi_notes_to_sample,
             working_dir=WORKING_DIR,
-            output_name="vocal-talking-instrument.sf2"
+            output_name="vocal-talking-instrument.sf2",
+            sample_rate=22050
         )
         
         print("\nPipeline complete! Your Python-native talking soundbank is ready.")

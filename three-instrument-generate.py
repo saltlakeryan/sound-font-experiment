@@ -28,6 +28,7 @@ def main():
             midi_notes=midi_notes_to_sample,
             working_dir=WORKING_DIR,
             output_name="three-instruments.sf2"
+            sample_rate=44100
         )
         
         print("\nPipeline complete! Multi-preset Soundfont successfully expanded.")
