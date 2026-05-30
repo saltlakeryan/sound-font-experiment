@@ -10,6 +10,10 @@ def parse_offset(offset_str: str) -> int:
         return int(offset_str, 16)
     return int(offset_str)
 
+def to_ascii_sidebar(data: bytes) -> str:
+    """Converts bytes to a readable ASCII sidebar string, replacing non-printables with dots."""
+    return "".join(chr(b) if 32 <= b <= 126 else "." for b in data)
+
 def get_reference_bytes(ref_path: str, offset_int: int, byte_count: int) -> bytes:
     """Runs xxd on the reference file at a specific integer offset."""
     if not os.path.exists(ref_path):
@@ -44,7 +48,6 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
     print(f"Reference Head: {ref_bytes[:8].hex(' ')} ...")
     print("-" * 70)
 
-    # Automatically widen the dial range scan window if checking very long sectors
     scan_range = max(128, byte_count)
 
     with open(gen_path, "rb") as gen_file:
@@ -52,7 +55,7 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
         max_size = gen_file.tell()
         
         found_match = False
-        for shift in range(-scan_range, scan_range, 2):  # Step by 2 (word-aligned fields)
+        for shift in range(-scan_range, scan_range, 2):
             test_offset = target_offset + shift
             if test_offset < 0 or test_offset + byte_count > max_size:
                 continue
@@ -62,13 +65,21 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
             
             matches = sum(1 for b1, b2 in zip(ref_bytes, gen_bytes) if b1 == b2)
             
-            # Catch matching fingerprints (heavy overlap or prefix signature alignment matches)
             if matches >= byte_count - 16 or (gen_bytes.startswith(ref_bytes[:4]) and matches > 8):
                 found_match = True
                 print(f"\n[DIAL MATCH FOUND] Shift: {shift:+d} bytes | True Offset: 0x{test_offset:08x}")
                 print(f"Similarity: {matches}/{byte_count} bytes align perfectly.")
-                print(f"REF: {ref_bytes.hex(' ')}")
-                print(f"GEN: {gen_bytes.hex(' ')}")
+                
+                # Format hex payload with spaces
+                ref_hex = ref_bytes.hex(' ')
+                gen_hex = gen_bytes.hex(' ')
+                
+                # Generate matching ASCII sidebars
+                ref_ascii = to_ascii_sidebar(ref_bytes)
+                gen_ascii = to_ascii_sidebar(gen_bytes)
+                
+                print(f"REF: {ref_hex}  |  {ref_ascii}")
+                print(f"GEN: {gen_hex}  |  {gen_ascii}")
                 
                 diffs = [i for i, (b1, b2) in enumerate(zip(ref_bytes, gen_bytes)) if b1 != b2]
                 if diffs:
@@ -76,7 +87,6 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
 
         if not found_match:
             print(f"No structural alignment found within +/- {scan_range} bytes.")
-            print("Your generated file size or internal structure offsets may be vastly shifted.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare specific byte windows across SoundFont binaries.")

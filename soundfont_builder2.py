@@ -24,24 +24,36 @@ class SoundFontBuilder2:
         })
 
     def build_info_list(self) -> ListEntry:
-        # Wrap each header subchunk into a Chunk object
-        # NOTE: Chunk size field matches the exact payload data length
-        ifil = Chunk(b'ifil', 4, struct.pack('<HH', 2, 4))
-        
-        icmt_bytes = b'Sf2 imported from sfz by Polyphone\x00\x00'
-        icmt = Chunk(b'ICMT', len(icmt_bytes), icmt_bytes)
-        
-        inam_bytes = b'preset_0\x00\x00'
-        inam = Chunk(b'INAM', len(inam_bytes), inam_bytes)
-        
-        isft_bytes = b'Polyphone\x00'
-        isft = Chunk(b'ISFT', len(isft_bytes), isft_bytes)
-        
+        """
+        Generates a structurally flawless INFO list chunk mirroring the
+        exact sequence, version, and text blocks of the reference template.
+        """
+        # 1. Force version back to 2.01
+        ifil = Chunk(b'ifil', 4, struct.pack('<HH', 2, 1))
+
+        # 2. Sound Engine target marker (isng)
         isng_bytes = b'EMU8000\x00'
         isng = Chunk(b'isng', len(isng_bytes), isng_bytes)
-        
-        # Return a structured ListEntry container
-        return ListEntry(fourcc=b'LIST', list_type=b'INFO', children=[ifil, icmt, inam, isft, isng])
+
+        # 3. Bank preset identifier (INAM)
+        inam_bytes = b'preset_0\x00\x00'
+        inam = Chunk(b'INAM', len(inam_bytes), inam_bytes)
+
+        # 4. Comments meta descriptor block (ICMT)
+        icmt_bytes = b'Sf2 imported from sfz by Polyphone\x00\x00'
+        icmt = Chunk(b'ICMT', len(icmt_bytes), icmt_bytes)
+
+        # 5. Software tools name description header (ISFT)
+        isft_bytes = b'Polyphone\x00'
+        isft = Chunk(b'ISFT', len(isft_bytes), isft_bytes)
+
+        # Return chunks in the exact sequential order required by REF
+        return ListEntry(
+            fourcc=b'LIST',
+            list_type=b'INFO',
+            children=[ifil, isng, inam, icmt, isft]
+        )
+
 
     def write_sf2(self, output_path: str, raw_pcm_data: bytes):
         # 1. Gather all main sub-lists
