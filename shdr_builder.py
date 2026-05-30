@@ -4,47 +4,32 @@ from riffwriter import Chunk
 
 def build_dynamic_shdr_chunk(all_samples_flat: list) -> Chunk:
     """
-    Generates a structurally flawless shdr chunk.
-    Preserves absolute global start and end pointers to map separate waveform 
-    sample blocks cleanly across the raw binary data pool.
+    Generates a structurally flawless shdr chunk driven entirely by dynamic payload data.
     """
     shdr_data = io.BytesIO()
     
     for s in all_samples_flat:
         wave_type = s.get('wave_type', 'sine')
         note_num = s.get('note_num', 60)
-        global_id = s.get('_global_id', 0)
         
+        # FIX: Generate pristine dynamic naming labels tracking your exact asset type strings
         name_string = f"{wave_type}_note_{note_num}".encode('ascii').ljust(20, b'\x00')
         
-        # FIX: Maintain the true absolute sample offsets passed from pipeline_compiler
         start = s.get('start', 0)
         end = s.get('end', 0)
         rate = s.get('rate', 44100)
-        pitch = 60 # Keep uniform pitch center
+        pitch = s.get('pitch', 60) # Tracks note values accurately or locks to 60 if center mapped
         
-        # Compute relative sample width for loop formatting loops
         sample_length = end - start
         
-        # ==========================================
-        # SPEC AUTOMATION CALIBRATION MATRIX
-        # ==========================================
-        if global_id == 0:
-            # Rule 1: The absolute first entry template baseline override
-            name_string = b"sine_note_48".ljust(20, b'\x00')
-            start, end, start_loop, end_loop = 0, 0xceb8, 0, 0
-            
-        elif wave_type == "sine":
-            # Rule 2: Active remainder Sine waves have loops cleared
-            # Loops point to start boundary address to mirror reference values
-            start_loop = start
-            end_loop = start
-            
-        else:
-            # Rule 3: Sawtooth waves scale loops relative to their true memory address bounds
-            start_loop = start
-            end_loop = start + sample_length - 1
-            
+        # Set loop markers relative to the raw sample memory blocks
+        start_loop = start
+        end_loop = start + sample_length - 1
+        
+        # Piper TTS uses a 22050Hz engine. Let's pull the rate property from the source map 
+        # to ensure speech playback speed stays perfectly synchronized
+        rate = s.get('rate', 22050)
+
         # Write standard 46-byte SoundFont sample header layout block row
         shdr_data.write(struct.pack(
             '<20sIIIIiBBHH', 

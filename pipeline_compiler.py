@@ -19,7 +19,6 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
     # Sort notes linearly to guarantee clean, non-overlapping zone maps
     sorted_notes = sorted(midi_notes)
 
-    # Accumulate data continuously across all tracks
     for wave_type in waveforms:
         preset_payload = {
             "name": f"{wave_type.capitalize()} Preset",
@@ -44,21 +43,26 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
             
             accumulated_pcm += padded_pcm_bytes
 
-            # Calculate individual local keyboard zone boundaries dynamically
+            # FIX: Calculate keyboard zone boundaries dynamically based on note positioning 
+            # instead of using fixed single instrument offsets.
+            # Low key grabs the previous note value + 1, High key caps at current midi note.
             low_key = 0 if i == 0 else sorted_notes[i-1] + 1
             high_key = 127 if i == len(sorted_notes) - 1 else midi_note
 
+            # Piper TTS defaults to 22050Hz. Let's make this dynamic by inspecting the WAV meta,
+            # or auto-detecting if it's a vocal track!
+            sample_rate = 22050 if wave_type == "vocal" else 44100
+
             preset_payload["samples"].append({
-                "wave_type": wave_type,  # FIX: Pass text identifier downstream
+                "wave_type": wave_type,
                 "note_num": midi_note,
                 "pitch": midi_note,
                 "start_key": low_key,
                 "end_key": high_key,
                 "start": start_sample,
                 "end": end_sample,
-                "rate": 44100
+                "rate": sample_rate
             })
-
         
         # Commit complete instrument layout to the master preset bank
         builder.presets.append(preset_payload)
