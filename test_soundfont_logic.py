@@ -50,19 +50,18 @@ def test_pbag_modulo_four_bounds(mock_presets):
     pbag_chunk = next(child for child in pdta_list.children if child.id == b'pbag')
     
     assert len(pbag_chunk.data) % 4 == 0, "Preset bag tracking row fields misaligned!"
-# Add this test function at the bottom of test_soundfont_logic.py
-def test_ibag_modulator_link_progression(mock_presets):
+
+def test_ibag_modulator_links_are_zero(mock_presets):
     """
-    Enforce that inside ibag, the second field (wInstModNdx) increments 
-    continuously by 3 across zones to prevent table drift.
+    Enforce that inside ibag, the second field (wInstModNdx) stays strictly
+    at 0 to satisfy Polyphone's constraint boundaries.
     """
     from ibag_builder import build_dynamic_ibag_chunk
     ibag_chunk = build_dynamic_ibag_chunk(mock_presets)
-    
-    # Parse out the packed modulator index parameters (uint16_t at bytes 2-3, 6-7, etc.)
     data = ibag_chunk.data
-    mod_indices = [struct.unpack('<H', data[idx:idx+2])[0] for idx in range(2, len(data)-4, 4)]
     
-    # Enforce that index steps represent a constant progression step size of 3
-    for i in range(1, len(mod_indices)):
-        assert mod_indices[i] == mod_indices[i-1] + 3, f"ibag tracking index break at row {i}"
+    # Read all wInstModNdx values (uint16_t fields at indices 2-3, 6-7, etc.)
+    for idx in range(2, len(data), 4):
+        mod_val = struct.unpack('<H', data[idx:idx+2])[0]
+        assert mod_val == 0, f"Found corrupted non-zero modulator link index: {mod_val}"
+

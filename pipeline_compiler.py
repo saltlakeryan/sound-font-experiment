@@ -49,6 +49,7 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
             high_key = 127 if i == len(sorted_notes) - 1 else midi_note
 
             preset_payload["samples"].append({
+                "wave_type": wave_type,  # FIX: Pass text identifier downstream
                 "note_num": midi_note,
                 "pitch": midi_note,
                 "start_key": low_key,
@@ -57,6 +58,7 @@ def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, 
                 "end": end_sample,
                 "rate": 44100
             })
+
         
         # Commit complete instrument layout to the master preset bank
         builder.presets.append(preset_payload)
