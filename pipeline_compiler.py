@@ -2,67 +2,55 @@ import os
 import struct
 from soundfont_builder2 import SoundFontBuilder2
 
-def compile_multitrack_sf2(waveforms: list, midi_notes: list, working_dir: str, output_name: str, sample_rate: int = 44100):
+def compile_vocal_word_presets(words: list, working_dir: str, output_name: str, sample_rate: int = 22050):
     """
-    Dynamically assembles an arbitrary list of audio waveforms and MIDI pitch targets 
-    into a consolidated multi-preset SoundFont file.
+    Assembles a flat list of words into a multi-preset SoundFont file.
+    Each word gets its own preset stretched chromatically from MIDI note 0 to 127.
     """
     builder = SoundFontBuilder2(name="preset_factory")
     builder.presets = []
-    
     accumulated_pcm = b""
-    current_index = 0 
+    current_index = 0
     
-    # SoundFont 2 spec mandatory 46 zero-samples padding (46 * 2 bytes = 92 bytes)
-    SF2_SAMPLE_PADDING = b'\x00' * 92
-    
-    # Sort notes linearly to guarantee clean, non-overlapping zone maps
-    sorted_notes = sorted(midi_notes)
+    # SoundFont 2 spec mandatory 46 zero-samples padding
+    SF2_SAMPLE_PADDING = b'\x00' * 92 
 
-    for wave_type in waveforms:
+    for idx, word in enumerate(words):
         preset_payload = {
-            "name": f"{wave_type.capitalize()} Preset",
+            "name": f"{word.capitalize()}",
             "samples": []
         }
         
-        for i, midi_note in enumerate(sorted_notes):
-            wav_path = os.path.join(working_dir, f"{wave_type}_note_{midi_note}.wav")
+        wav_path = os.path.join(working_dir, f"vocal_preset_{idx}.wav")
+        if not os.path.exists(wav_path):
+            raise FileNotFoundError(f"Required component WAV missing: {wav_path}")
             
-            if not os.path.exists(wav_path):
-                raise FileNotFoundError(f"Required component WAV missing: {wav_path}")
-                
-            with open(wav_path, 'rb') as f:
-                f.seek(44)  # Skip standard 44-byte WAV header
-                pcm_bytes = f.read()
-
-            padded_pcm_bytes = pcm_bytes + SF2_SAMPLE_PADDING
-            start_sample = current_index
+        with open(wav_path, 'rb') as f:
+            f.seek(44)  # Skip standard 44-byte WAV header
+            pcm_bytes = f.read()
             
-            end_sample = start_sample + (len(pcm_bytes) // 2)
-            current_index = start_sample + (len(padded_pcm_bytes) // 2)
-            
-            accumulated_pcm += padded_pcm_bytes
+        padded_pcm_bytes = pcm_bytes + SF2_SAMPLE_PADDING
+        start_sample = current_index
+        end_sample = start_sample + (len(pcm_bytes) // 2)
+        current_index = start_sample + (len(padded_pcm_bytes) // 2)
+        accumulated_pcm += padded_pcm_bytes
 
-            # Calculate individual local keyboard zone boundaries dynamically
-            low_key = 0 if i == 0 else sorted_notes[i-1] + 1
-            high_key = 127 if i == len(sorted_notes) - 1 else midi_note
-
-            preset_payload["samples"].append({
-                "wave_type": wave_type,
-                "note_num": midi_note,
-                "pitch": midi_note,
-                "start_key": low_key,
-                "end_key": high_key,
-                "start": start_sample,
-                "end": end_sample,
-                "rate": sample_rate  # FIX: Now driven entirely by the function argument
-            })
+        # Each preset contains exactly one voice sample that stretches across the keyboard.
+        # Root key is 60 (Middle C) so it plays back at normal speaking speed on that note.
+        preset_payload["samples"].append({
+            "wave_type": f"vocal_{idx}",
+            "note_num": 60,       # Original root pitch metadata tracking
+            "pitch": 60,          # Original pitch
+            "start_key": 0,       # Stretches clear down to bass registry
+            "end_key": 127,       # Up into treble registry
+            "start": start_sample,
+            "end": end_sample,
+            "rate": sample_rate
+        })
         
-        # Commit complete instrument layout to the master preset bank
         builder.presets.append(preset_payload)
 
-    # Write the entire payload to disk exactly once
+    # Write the completed layout matrix directly to file using your custom engine blocks
     output_file_path = os.path.join(working_dir, output_name)
     builder.write_sf2(output_file_path, accumulated_pcm)
-    
-    print(f"[SUCCESS] Compiled {len(waveforms)} presets into: {output_file_path}")
+    print(f"[SUCCESS] Compiled {len(words)} unique word presets into: {output_file_path}")
