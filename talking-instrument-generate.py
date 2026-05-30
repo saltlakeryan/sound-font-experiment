@@ -29,8 +29,9 @@ def main():
 
     # Supply your short list of words here (Less than 200 words)
     word_list = [
-        "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india",
-        "apple", "banana", "cherry", "orange", "grape", "melon", "lemon", "lime", "berry"
+#        "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india",
+#        "apple", "banana", "cherry", "orange", "grape", "melon", "lemon", "lime", "berry"
+        "fall", "off", "the", "log", "stomp", "kick", "kickback", "rock", "step", "ball", "tap", "toe", "heel", "left", "right", "five", "six", "seven", "eight"
     ]
     
     # Clean and slice list just in case to keep safely under SoundFont bounds
