@@ -5,6 +5,8 @@ from typing import List
 # Import your newly created riffwriter module
 from riffwriter import Chunk, ListEntry, write_entry
 
+from ibag_builder import build_ibag_chunk
+
 class SoundFontBuilder2:
     def __init__(self, name="instrument_0"):
         self.name = name.encode('ascii')[:20].ljust(20, b'\x00')
@@ -76,16 +78,8 @@ class SoundFontBuilder2:
         inst_data = struct.pack('<20sH', instrument_name, 0) + struct.pack('<20sH', b'EOI', 10)
         inst = Chunk(b'inst', len(inst_data), inst_data)
 
-        # 6. ibag
-        ibag_data = io.BytesIO()
-        ibag_data.write(struct.pack('<HH', 0, 0))
-        for i in range(len(self.samples)):
-            mod_index = 3 + (i * 3)
-            ibag_data.write(struct.pack('<HH', 2, mod_index))
-        terminal_mod_index = 3 + (len(self.samples) * 3)
-        ibag_data.write(struct.pack('<HH', 2, terminal_mod_index))
-        ibag_bytes = ibag_data.getvalue()
-        ibag = Chunk(b'ibag', len(ibag_bytes), ibag_bytes)
+        # 6. ibag (Now imported from your external file)
+        ibag = build_ibag_chunk(self.samples)
 
         # 7. imod
         imod_data = b'\x02\x05\x30\x00\x00\x00\x00\x00\x02\x01\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
