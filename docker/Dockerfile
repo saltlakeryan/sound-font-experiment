@@ -72,4 +72,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends fluidsynth \
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3-pytest
 
+# =========================================================================
+# PIPER-TTS PYTHON ENVIRONMENT ENVIRONMENT LAYER
+# =========================================================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsndfile1
+
+RUN mkdir -p /usr/share/piper/models
+
+# 1. Install the programmatic python wrapper layer
+RUN pip install --no-cache-dir --break-system-packages piper-tts
+
+# 2. Setup a stable system folder path to host voice modules
+RUN mkdir -p /usr/share/piper/models
+
+# 3. FIX: Calibrated flag arguments using --download-dir to permanently cache model
+RUN python3 -m piper.download_voices --download-dir /usr/share/piper/models en_US-lessac-medium
+
+
 WORKDIR /app
