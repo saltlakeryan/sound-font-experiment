@@ -6,6 +6,9 @@ from typing import List
 from riffwriter import Chunk, ListEntry, write_entry
 
 from ibag_builder import build_ibag_chunk
+from imod_builder import build_imod_chunk
+from igen_builder import build_igen_chunk
+
 
 class SoundFontBuilder2:
     def __init__(self, name="instrument_0"):
@@ -78,25 +81,14 @@ class SoundFontBuilder2:
         inst_data = struct.pack('<20sH', instrument_name, 0) + struct.pack('<20sH', b'EOI', 10)
         inst = Chunk(b'inst', len(inst_data), inst_data)
 
-        # 6. ibag (Now imported from your external file)
+        # 6. ibag (Imported from external file)
         ibag = build_ibag_chunk(self.samples)
 
-        # 7. imod
-        imod_data = b'\x02\x05\x30\x00\x00\x00\x00\x00\x02\x01\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        imod = Chunk(b'imod', len(imod_data), imod_data)
+        # 7. imod (Now imported from isolated builder file)
+        imod = build_imod_chunk()
 
-        # 8. igen
-        igen_data = io.BytesIO()
-        igen_data.write(struct.pack('<HH', 0, 0))
-        igen_data.write(struct.pack('<HH', 0, 0))
-        igen_data.write(struct.pack('<HBB', 43, 0, 127))
-        igen_data.write(struct.pack('<Hh', 58, 60))
-        igen_data.write(struct.pack('<Hh', 53, 0))
-        padding_records_needed = 28 - 5
-        for _ in range(padding_records_needed):
-            igen_data.write(struct.pack('<HH', 0, 0))
-        igen_bytes = igen_data.getvalue()
-        igen = Chunk(b'igen', len(igen_bytes), igen_bytes)
+        # 8. igen (Now imported from isolated builder file)
+        igen = build_igen_chunk()
 
         # 9. shdr
         shdr_data = io.BytesIO()
