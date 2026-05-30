@@ -31,8 +31,8 @@ def build_shdr_chunk(samples: list) -> Chunk:
         # Absolute structural override required ONLY for Sample 0 layout matching
         if i == 0:
             name_string = b"sine_note_48".ljust(20, b'\x00')
-            # FIX: Bind both start and end variables to override the internal pointer shift
-            start, end, start_loop, end_loop = 0xceb8, 0xceb8, 0, 0
+            # FIX: Explicitly set start to 0 and end to 0xceb8 to clear indices 16-17
+            start, end, start_loop, end_loop = 0, 0xceb8, 0, 0
             pitch = 60
 
             
