@@ -5,8 +5,8 @@ import sys
 import argparse
 
 # --- Configuration Base Defaults ---
-REFERENCE_SF2 = "output/instrument_0b.sf2"  # Path to your known good file
-GENERATED_SF2 = "output/instrument_0.sf2"   # Path to your generated file
+REFERENCE_SF2 = "output/instrument_0.sf2"  # Path to your known good file
+GENERATED_SF2 = "output/instrument_0b.sf2"   # Path to your generated file
 BYTE_COUNT = 64                            # Window size to compare
 
 def parse_offset(offset_str: str) -> int:
