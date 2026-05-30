@@ -2,12 +2,14 @@ import struct
 import io
 from typing import List
 
+
 # Import your newly created riffwriter module
 from riffwriter import Chunk, ListEntry, write_entry
 
 from ibag_builder import build_ibag_chunk
 from imod_builder import build_imod_chunk
 from igen_builder import build_igen_chunk
+from shdr_builder import build_shdr_chunk
 
 
 class SoundFontBuilder2:
@@ -88,15 +90,10 @@ class SoundFontBuilder2:
         imod = build_imod_chunk()
 
         # 8. igen (Now imported from isolated builder file)
-        igen = build_igen_chunk()
+        igen = build_igen_chunk(self.samples)
 
         # 9. shdr
-        shdr_data = io.BytesIO()
-        for i, s in enumerate(self.samples):
-            shdr_data.write(struct.pack('<20sIIIIiBBHH', f"sample_{i}".encode('ascii').ljust(20, b'\x00'), s['start'], s['end'], s['start'], s['end'], s['rate'], s['pitch'], 0, 0, 1))
-        shdr_data.write(struct.pack('<20sIIIIiBBHH', b'EOS', 0, 0, 0, 0, 0, 0, 0, 0, 0))
-        shdr_bytes = shdr_data.getvalue()
-        shdr = Chunk(b'shdr', len(shdr_bytes), shdr_bytes)
+        shdr = build_shdr_chunk(self.samples)
 
         return ListEntry(
             fourcc=b'LIST', 
