@@ -11,7 +11,7 @@ def parse_offset(offset_str: str) -> int:
     return int(offset_str)
 
 def to_ascii_sidebar(data: bytes) -> str:
-    """Converts bytes to a readable ASCII sidebar string, replacing non-printables with dots."""
+    """Converts bytes to a readable ASCII string, replacing non-printables with dots."""
     return "".join(chr(b) if 32 <= b <= 126 else "." for b in data)
 
 def get_reference_bytes(ref_path: str, offset_int: int, byte_count: int) -> bytes:
@@ -42,11 +42,10 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
         return
 
     print(f"=== SoundFont Alignment Test ===")
-    print(f"Reference File: {ref_path}")
-    print(f"Generated File: {gen_path}")
-    print(f"Targeting Reference Offset: 0x{target_offset:08x} ({target_offset} bytes) | Window Size: {byte_count} bytes")
-    print(f"Reference Head: {ref_bytes[:8].hex(' ')} ...")
-    print("-" * 70)
+    print(f"Reference: {ref_path}")
+    print(f"Generated: {gen_path}")
+    print(f"Target Offset: 0x{target_offset:08x} ({target_offset} bytes) | Window: {byte_count} bytes")
+    print("-" * 80)
 
     scan_range = max(128, byte_count)
 
@@ -67,23 +66,19 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
             
             if matches >= byte_count - 16 or (gen_bytes.startswith(ref_bytes[:4]) and matches > 8):
                 found_match = True
-                print(f"\n[DIAL MATCH FOUND] Shift: {shift:+d} bytes | True Offset: 0x{test_offset:08x}")
-                print(f"Similarity: {matches}/{byte_count} bytes align perfectly.")
+                print(f"\n[DIAL MATCH] Shift: {shift:+d} bytes | True Offset: 0x{test_offset:08x} | Similarity: {matches}/{byte_count} bytes")
+                print("-" * 80)
                 
-                # Format hex payload with spaces
-                ref_hex = ref_bytes.hex(' ')
-                gen_hex = gen_bytes.hex(' ')
-                
-                # Generate matching ASCII sidebars
-                ref_ascii = to_ascii_sidebar(ref_bytes)
-                gen_ascii = to_ascii_sidebar(gen_bytes)
-                
-                print(f"REF: {ref_hex}  |  {ref_ascii}")
-                print(f"GEN: {gen_hex}  |  {gen_ascii}")
+                # Format Hex and ASCII elements distinctly 
+                print(f"REF HEX: {ref_bytes.hex(' ')}")
+                print(f"GEN HEX: {gen_bytes.hex(' ')}")
+                print(f"REF ASC: {to_ascii_sidebar(ref_bytes)}")
+                print(f"GEN ASC: {to_ascii_sidebar(gen_bytes)}")
                 
                 diffs = [i for i, (b1, b2) in enumerate(zip(ref_bytes, gen_bytes)) if b1 != b2]
                 if diffs:
-                    print(f"First structural diff occurs at window byte index: {diffs}")
+                    print(f"Diff Window Byte Indices: {diffs}")
+                print("-" * 80)
 
         if not found_match:
             print(f"No structural alignment found within +/- {scan_range} bytes.")
@@ -91,9 +86,9 @@ def scan_and_compare(ref_path: str, gen_path: str, target_offset: int, byte_coun
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare specific byte windows across SoundFont binaries.")
     parser.add_argument("offset", type=str, help="Target base offset to investigate (e.g., 0x000e8d90 or 953744)")
-    parser.add_argument("--ref", type=str, default="reference/two-instruments.sf2", help="Path to reference binary template file")
-    parser.add_argument("--gen", type=str, default="output/two-instruments.sf2", help="Path to generated compilation binary file")
-    parser.add_argument("--count", type=int, default=64, help="Byte size window footprint dimension to verify")
+    parser.add_argument("--ref", type=str, default="reference/two-instruments.sf2", help="Path to reference template")
+    parser.add_argument("--gen", type=str, default="output/two-instruments.sf2", help="Path to generated file")
+    parser.add_argument("--count", type=int, default=64, help="Byte size window footprint dimension")
     
     args = parser.parse_args()
     
