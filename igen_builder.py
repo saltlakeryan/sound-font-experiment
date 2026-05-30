@@ -30,3 +30,33 @@ def build_igen_chunk(samples: list) -> Chunk:
         
     igen_bytes = igen_data.getvalue()
     return Chunk(b'igen', len(igen_bytes), igen_bytes)
+
+def build_dynamic_igen_chunk(presets: list) -> Chunk:
+    import io, struct
+    igen_data = io.BytesIO()
+    
+    global_sample_counter = 0
+    
+    for preset in presets:
+        samples = preset.get("samples", [])
+        
+        # Every instrument must match the reference structure layout:
+        # If your setup needs explicit global configuration registers, map them here.
+        
+        for s in samples:
+            low_key = s.get('start_key', 0)
+            high_key = s.get('end_key', 127)
+            pitch = s.get('pitch', 60)
+            
+            # Map parameters dynamically 
+            igen_data.write(struct.pack('<HBB', 43, low_key, high_key)) # Key range
+            igen_data.write(struct.pack('<Hh', 58, pitch))             # Root Key center
+            igen_data.write(struct.pack('<Hh', 53, global_sample_counter)) # LINK TO SHDR INDEX
+            
+            global_sample_counter += 1
+            
+        # Write a terminal instrument zone pad operator to close the local preset structure safely
+        igen_data.write(struct.pack('<HH', 0, 0))
+        
+    return Chunk(b'igen', igen_data.tell(), igen_data.getvalue())
+

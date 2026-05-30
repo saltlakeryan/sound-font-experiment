@@ -27,3 +27,25 @@ def build_ibag_chunk(samples: list) -> Chunk:
     
     # Pass 44 to chunk_size to match the '2c 00' header in the reference file
     return Chunk(b'ibag', len(ibag_bytes), ibag_bytes)
+
+def build_dynamic_ibag_chunk(presets: list) -> Chunk:
+    import io, struct
+    ibag_data = io.BytesIO()
+    
+    current_mod_accumulator = 0
+    
+    for preset in presets:
+        # 1. Global instrument zone (always points to current mod index start)
+        ibag_data.write(struct.pack('<HH', 0, current_mod_accumulator))
+        current_mod_accumulator += 3 # Standard offset space step size per zone
+        
+        # 2. Active sample zones loop
+        for _ in preset.get("samples", []):
+            ibag_data.write(struct.pack('<HH', 2, current_mod_accumulator))
+            current_mod_accumulator += 3
+            
+    # Final terminal record links cleanly to the absolute end boundary
+    ibag_data.write(struct.pack('<H', 2)) 
+    
+    return Chunk(b'ibag', ibag_data.tell(), ibag_data.getvalue())
+

@@ -2,15 +2,12 @@ import struct
 import io
 from typing import List
 
+from pdta_builder import build_pdta_list
+from sdta_builder import build_sdta_list
+
 
 # Import your newly created riffwriter module
 from riffwriter import Chunk, ListEntry, write_entry
-
-from ibag_builder import build_ibag_chunk
-from imod_builder import build_imod_chunk
-from igen_builder import build_igen_chunk
-from shdr_builder import build_shdr_chunk
-
 
 class SoundFontBuilder2:
     def __init__(self, name="instrument_0"):
@@ -46,75 +43,22 @@ class SoundFontBuilder2:
         # Return a structured ListEntry container
         return ListEntry(fourcc=b'LIST', list_type=b'INFO', children=[ifil, icmt, inam, isft, isng])
 
-    def build_sdta_list(self, raw_pcm_data: bytes) -> ListEntry:
-        target_smpl_size = 953388
-        current_size = len(raw_pcm_data)
-        if current_size < target_smpl_size:
-            padding_needed = target_smpl_size - current_size
-            raw_pcm_data += b'\x00' * padding_needed
-            
-        final_pcm = raw_pcm_data[:target_smpl_size]
-        smpl = Chunk(b'smpl', len(final_pcm), final_pcm)
-        
-        return ListEntry(fourcc=b'LIST', list_type=b'sdta', children=[smpl])
-
-    def build_pdta_list(self) -> ListEntry:
-        preset_name = b'preset_0'.ljust(20, b'\x00')
-        instrument_name = b'preset_0'.ljust(20, b'\x00')
-
-        # 1. phdr
-        phdr_data = struct.pack('<20sHHHIII', preset_name, 0, 0, 0, 0, 0, 0)
-        phdr_data += struct.pack('<20sHHHIII', b'EOP', 0, 0, 2, 0, 0, 0)
-        phdr = Chunk(b'phdr', len(phdr_data), phdr_data)
-
-        # 2. pbag
-        pbag_data = struct.pack('<HH', 0, 0) + struct.pack('<HH', 0, 0) + struct.pack('<HH', 2, 0)
-        pbag = Chunk(b'pbag', len(pbag_data), pbag_data)
-
-        # 3. pmod
-        pmod_data = struct.pack('<HHhHH', 0, 0, 0, 0, 0)
-        pmod = Chunk(b'pmod', len(pmod_data), pmod_data)
-
-        # 4. pgen
-        pgen_data = struct.pack('<HBB', 43, 0, 127) + struct.pack('<Hh', 41, 0) + struct.pack('<HH', 0, 0)
-        pgen = Chunk(b'pgen', len(pgen_data), pgen_data)
-
-        # 5. inst
-        inst_data = struct.pack('<20sH', instrument_name, 0) + struct.pack('<20sH', b'EOI', 10)
-        inst = Chunk(b'inst', len(inst_data), inst_data)
-
-        # 6. ibag (Imported from external file)
-        ibag = build_ibag_chunk(self.samples)
-
-        # 7. imod (Now imported from isolated builder file)
-        imod = build_imod_chunk()
-
-        # 8. igen (Now imported from isolated builder file)
-        igen = build_igen_chunk(self.samples)
-
-        # 9. shdr
-        shdr = build_shdr_chunk(self.samples)
-
-        return ListEntry(
-            fourcc=b'LIST', 
-            list_type=b'pdta', 
-            children=[phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr]
-        )
-
     def write_sf2(self, output_path: str, raw_pcm_data: bytes):
         # 1. Gather all main sub-lists
         info_list = self.build_info_list()
-        sdta_list = self.build_sdta_list(raw_pcm_data)
-        pdta_list = self.build_pdta_list()
-        
+        sdta_list = build_sdta_list(raw_pcm_data)
+
+        # FIX: Pass the dynamic presets array if it has data; otherwise fallback to samples
+        preset_source = self.presets if hasattr(self, 'presets') and self.presets else self.samples
+        pdta_list = build_pdta_list(preset_source)
+
         # 2. Build the top-level SoundFont container
-        # SoundFont (.sf2) files are just a giant standard RIFF container
         sf2_file = ListEntry(
             fourcc=b'RIFF',
             list_type=b'sfbk',
             children=[info_list, sdta_list, pdta_list]
         )
-        
+
         # 3. Serialize everything cleanly using the riffwriter module
         with open(output_path, 'wb') as f:
             write_entry(sf2_file, f)
