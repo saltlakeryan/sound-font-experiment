@@ -70,3 +70,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends lilypond \
 RUN apt-get update && apt-get install -y --no-install-recommends fluidsynth \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pytest
