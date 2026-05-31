@@ -89,5 +89,6 @@ RUN mkdir -p /usr/share/piper/models
 # 3. FIX: Calibrated flag arguments using --download-dir to permanently cache model
 RUN python3 -m piper.download_voices --download-dir /usr/share/piper/models en_US-lessac-medium
 
+RUN pip install --no-cache-dir --break-system-packages mido
 
 WORKDIR /app
