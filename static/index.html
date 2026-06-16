@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Percussion & Vocal Synthesizer Pipeline</title>
+    <!-- Google Fonts Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">🥁🗣️</div>
+            <h1>Percussion & Vocal Synthesizer</h1>
+            <p class="subtitle">Enter rhythmic footwork patterns, map spoken vocals, and compile them to sheet music and audio banks.</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Left Panel: Controls and Editor -->
+            <section class="editor-section card animate-fade-in">
+                <div class="card-header">
+                    <h2>Event Sequence Editor</h2>
+                    <div class="preset-controls">
+                        <span class="control-label">Load Preset:</span>
+                        <button id="preset-dance" class="btn btn-secondary btn-sm">Dance Routine</button>
+                        <button id="preset-charleston" class="btn btn-secondary btn-sm">Charleston Basic</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="events-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th style="width: 140px;">Foot / Sound</th>
+                                <th style="width: 130px;">Note Length</th>
+                                <th>Lyric Word</th>
+                                <th>Comment Above Staff</th>
+                                <th style="width: 80px; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Rows will be injected here by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="editor-actions">
+                    <button id="add-row-btn" class="btn btn-outline">
+                        <span class="btn-icon">+</span> Add Event Row
+                    </button>
+                    <button id="clear-table-btn" class="btn btn-danger">Clear All</button>
+                    <button id="run-pipeline-btn" class="btn btn-primary btn-glow">
+                        Run Synthesizer Pipeline <span class="btn-arrow">→</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Results / Status (Initially displays welcome or results) -->
+            <section class="results-section">
+                <!-- Welcome View -->
+                <div id="welcome-view" class="card welcome-card animate-fade-in">
+                    <div class="welcome-graphic">🎚️</div>
+                    <h2>No Pattern Synthesized Yet</h2>
+                    <p>Enter events in the editor table on the left, then click <strong>"Run Synthesizer Pipeline"</strong> to compile your sheet music and audio master.</p>
+                </div>
+
+                <!-- Loading / Pipeline Progress View -->
+                <div id="loading-view" class="card loading-card hidden">
+                    <div class="loader-spinner"></div>
+                    <h2>Running Pipelines...</h2>
+                    <p>Compiling binary formats on the server container. Please wait.</p>
+                    
+                    <div class="pipeline-stages">
+                        <div class="stage" id="stage-lilypond">
+                            <span class="stage-status">⏳</span>
+                            <span class="stage-name">Compiling LilyPond notation to PDF</span>
+                        </div>
+                        <div class="stage" id="stage-tts">
+                            <span class="stage-status">⏳</span>
+                            <span class="stage-name">Synthesizing vocal samples (Piper neural engine)</span>
+                        </div>
+                        <div class="stage" id="stage-sf2">
+                            <span class="stage-status">⏳</span>
+                            <span class="stage-name">Assembling SoundFont preset bank</span>
+                        </div>
+                        <div class="stage" id="stage-midi">
+                            <span class="stage-status">⏳</span>
+                            <span class="stage-name">Building timed program-changing MIDI sequence</span>
+                        </div>
+                        <div class="stage" id="stage-render">
+                            <span class="stage-status">⏳</span>
+                            <span class="stage-name">Rendering final master WAV via FluidSynth</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error View -->
+                <div id="error-view" class="card error-card hidden">
+                    <div class="error-icon">⚠️</div>
+                    <h2>Synthesis Failed</h2>
+                    <p id="error-message">An error occurred during pipeline execution.</p>
+                    <button id="error-dismiss-btn" class="btn btn-outline">Dismiss</button>
+                </div>
+
+                <!-- Success / Output View -->
+                <div id="output-view" class="card output-card hidden animate-fade-in">
+                    <div class="card-header">
+                        <h2>Synthesized Outputs</h2>
+                        <span class="badge badge-success">Compiled Successfully</span>
+                    </div>
+
+                    <div class="results-grid">
+                        <!-- Left Sub-panel: Sheet Music (PDF) -->
+                        <div class="pdf-panel">
+                            <h3>Sheet Music (LilyPond PDF)</h3>
+                            <div class="pdf-wrapper">
+                                <iframe id="pdf-viewer" src="" type="application/pdf"></iframe>
+                            </div>
+                        </div>
+
+                        <!-- Right Sub-panel: Audio Master & Downloads -->
+                        <div class="downloads-panel">
+                            <h3>Audio Master</h3>
+                            <div class="audio-player-card">
+                                <div class="player-title">Talking Vocal Melody Render</div>
+                                <audio id="audio-player" controls></audio>
+                            </div>
+
+                            <h3>Artifact Downloads</h3>
+                            <div class="download-buttons">
+                                <a id="download-pdf" href="#" download class="download-link">
+                                    <span class="file-icon">📄</span>
+                                    <div class="file-details">
+                                        <div class="file-name">score.pdf</div>
+                                        <div class="file-desc">Printable Sheet Music</div>
+                                    </div>
+                                </a>
+                                <a id="download-wav" href="#" download class="download-link">
+                                    <span class="file-icon">🔊</span>
+                                    <div class="file-details">
+                                        <div class="file-name">talking_melody.wav</div>
+                                        <div class="file-desc">FluidSynth Master Render</div>
+                                    </div>
+                                </a>
+                                <a id="download-sf2" href="#" download class="download-link">
+                                    <span class="file-icon">🎹</span>
+                                    <div class="file-details">
+                                        <div class="file-name">talking_instrument.sf2</div>
+                                        <div class="file-desc">SoundFont 2 Voice Presets Bank</div>
+                                    </div>
+                                </a>
+                                <a id="download-midi-vocal" href="#" download class="download-link">
+                                    <span class="file-icon">🎵</span>
+                                    <div class="file-details">
+                                        <div class="file-name">talking_melody.mid</div>
+                                        <div class="file-desc">Vocal Switching MIDI File</div>
+                                    </div>
+                                </a>
+                                <a id="download-midi-raw" href="#" download class="download-link">
+                                    <span class="file-icon">🥁</span>
+                                    <div class="file-details">
+                                        <div class="file-name">score.midi</div>
+                                        <div class="file-desc">Raw Percussion MIDI File</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>SoundFont Factory Project &copy; 2026. Built with Piper neural TTS, LilyPond, and FluidSynth.</p>
+        </footer>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>
