@@ -64,8 +64,20 @@ RUN chmod +x /src/bin/polyphone
 # =========================================================================
 # CACHE SAFE ADDITIONS: X11 & XCB libraries required to stop the Qt crash
 # =========================================================================
-RUN apt-get update && apt-get install -y --no-install-recommends lilypond \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends lilypond \
+#     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    tar \
+    bzip2 \
+    ghostscript \
+    && curl -L https://gitlab.com/lilypond/lilypond/-/releases/v2.26.0/downloads/lilypond-2.26.0-linux-x86_64.tar.gz -o /tmp/lilypond.tar.gz \
+    && tar -xzf /tmp/lilypond.tar.gz -C /usr/local/ --strip-components=1 \
+    && rm -rf /tmp/lilypond.tar.gz /var/lib/apt/lists/*
+#########################################################################
+
 
 RUN apt-get update && apt-get install -y --no-install-recommends fluidsynth \
     && rm -rf /var/lib/apt/lists/*

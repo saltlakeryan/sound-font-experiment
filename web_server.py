@@ -8,7 +8,7 @@ from piper import PiperVoice, SynthesisConfig
 app = Flask(__name__, static_folder='static', static_url_path='')
 
 MODEL_PATH = "/usr/share/piper/models/en_US-lessac-medium.onnx"
-OUTPUT_DIR = "/app/output"
+OUTPUT_DIR = "/tmp/output"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
