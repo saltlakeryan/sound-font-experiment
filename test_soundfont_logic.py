@@ -21,14 +21,15 @@ def mock_presets():
 def test_imod_chunk_size_compliance(mock_presets):
     """
     CRITICAL RULE: The imod subchunk footprint must remain strictly 
-    30 bytes long to keep Polyphone's parser execution aligned.
+    10 bytes long (exactly 1 terminal modulator record) to match
+    the zero modulators linked in the ibag chunk.
     """
     imod_chunk = build_dynamic_imod_chunk(mock_presets)
     
     assert isinstance(imod_chunk, Chunk)
     assert imod_chunk.id == b'imod'
-    # Enforce strict 30-byte limit explicitly
-    assert len(imod_chunk.data) == 30, f"Expected 30 bytes for imod pool, got {len(imod_chunk.data)}"
+    # Enforce strict 10-byte limit explicitly
+    assert len(imod_chunk.data) == 10, f"Expected 10 bytes for imod pool, got {len(imod_chunk.data)}"
 
 def test_phdr_structure_record_width(mock_presets):
     """

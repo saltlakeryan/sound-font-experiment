@@ -14,6 +14,31 @@ Every generated binary is strictly vetted against the RIFF/SoundFont 2
 specification using a custom alignment suite, ensuring immediate, out-of-the-box
 loading into samplers, DAWs, and editor suites like Polyphone.
 
+
+**WEB INTERFACE & INTEGRATED PIPELINES**
+----------------------------------------
+
+A user-friendly web interface integrates the key compilation and rendering steps into a cohesive dashboard:
+
+*   **Interactive Event Table:** Input sequences specifying the physical foot action (`Left Foot`, `Right Foot`, or `Rest`), standard musical note lengths (Whole to Sixteenth), lyric words, and staff comments.
+*   **Dual-Pipeline Synthesis:**
+    1.  *LilyPond Score Compiler:* Generates a PDF sheet music layout with a custom 2-instrument percussion voice, attaching lyrics below the staff and comments above.
+    2.  *Vocal Synthesizer:* Synthesizes the unique lyric words using the local Piper neural TTS engine, packs them into a custom SoundFont bank, programs a timed MIDI track with instrument switches, and renders a master `.wav` file via `fluidsynth`.
+*   **Asset Download & Preview Hub:** Preview the generated sheet music PDF and play the finished audio master directly in the browser, with direct links to download all generated formats (`.pdf`, `.wav`, `.sf2`, `.mid`, `.midi`).
+
+**Running the Web Dashboard:**
+
+Start the Flask server:
+```bash
+python3 web_server.py
+
+or
+
+docker run -v `pwd`:/app --rm -it -p 7899:8000 soundfont-factory python3 web_server.py
+```
+Then navigate to `http://localhost:8000` in your web browser.
+
+
 **QUICK START GUIDE**
 ---------------------
 
@@ -203,5 +228,11 @@ audio power instead of blank zeros.
     
 *   test\_alignment.py:High-density visual binary analysis diagnostic tool with stacked hexand ASCII views.
     
+*   web_server.py:Flask application serving the web interface and orchestrating LilyPond compiling, Piper TTS synthesis, and FluidSynth rendering.
+    
+*   static/:Directory housing index.html, index.js, and index.css for the interactive event sequence editor and preview hub.
+    
+*   TODO.txt:Initial specifications checklist outlining the web editor layout and pipeline expectations.
+    
 
-\================================================================================
+================================================================================

@@ -89,7 +89,7 @@ def generate():
     }}
 """
 
-        ly_content = f"""\\version "2.26.0"
+        ly_content = f"""\\version "2.24.0"
 
 #(define feet-pitches '(
   (left . left) (right . right)

@@ -1,4 +1,4 @@
-\version "2.26.0"
+\version "2.24.0"
 
 % 1. Register the 9 custom pitches into the global dictionary
 #(define my-extended-pitches '(
