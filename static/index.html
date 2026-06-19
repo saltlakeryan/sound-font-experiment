@@ -32,7 +32,12 @@
                     </div>
                 </div>
 
-                <div class="table-container">
+                <div class="editor-tabs">
+                    <button id="tab-table" class="tab-btn active">📋 Table View</button>
+                    <button id="tab-json" class="tab-btn">📝 JSON Text Editor</button>
+                </div>
+
+                <div class="table-container" id="table-view-container">
                     <table id="events-table">
                         <thead>
                             <tr>
@@ -48,6 +53,11 @@
                             <!-- Rows will be injected here by JS -->
                         </tbody>
                     </table>
+                </div>
+
+                <div id="json-editor-container" class="json-container hidden">
+                    <div id="json-validation-error" class="error-banner hidden"></div>
+                    <textarea id="raw-json-editor" class="input-control font-mono" placeholder='[{"foot": "left", "note_length": "4", "lyric": "kick", "comment": "charleston"}]'></textarea>
                 </div>
 
                 <div class="editor-actions">
@@ -180,6 +190,14 @@
             <p>SoundFont Factory Project &copy; 2026. Built with Piper neural TTS, LilyPond, and FluidSynth.</p>
         </footer>
     </div>
+    <datalist id="note-lengths">
+        <option value="1">1 (Whole)</option>
+        <option value="2">2 (Half)</option>
+        <option value="4">4 (Quarter)</option>
+        <option value="8">8 (Eighth)</option>
+        <option value="16">16 (Sixteenth)</option>
+    </datalist>
+
     <script src="index.js"></script>
 </body>
 </html>

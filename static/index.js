@@ -4,6 +4,15 @@ const addRowBtn = document.getElementById('add-row-btn');
 const clearTableBtn = document.getElementById('clear-table-btn');
 const runPipelineBtn = document.getElementById('run-pipeline-btn');
 
+// Raw JSON Editor Tabs and Elements
+const tabTable = document.getElementById('tab-table');
+const tabJson = document.getElementById('tab-json');
+const tableViewContainer = document.getElementById('table-view-container');
+const jsonEditorContainer = document.getElementById('json-editor-container');
+const rawJsonEditor = document.getElementById('raw-json-editor');
+const jsonValidationError = document.getElementById('json-validation-error');
+let currentView = 'table';
+
 const welcomeView = document.getElementById('welcome-view');
 const loadingView = document.getElementById('loading-view');
 const errorView = document.getElementById('error-view');
@@ -72,6 +81,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     presetDanceBtn.addEventListener('click', () => loadPreset('dance'));
     presetCharlestonBtn.addEventListener('click', () => loadPreset('charleston'));
+
+    // Wire raw JSON view toggles
+    tabTable.addEventListener('click', () => switchEditorView('table'));
+    tabJson.addEventListener('click', () => switchEditorView('json'));
 });
 
 // Render the entire table based on internal events array
@@ -96,13 +109,7 @@ function createTableRow(event, index) {
             </select>
         </td>
         <td>
-            <select class="input-control length-select">
-                <option value="1" ${event.note_length === 1 ? 'selected' : ''}>1 (Whole)</option>
-                <option value="2" ${event.note_length === 2 ? 'selected' : ''}>2 (Half)</option>
-                <option value="4" ${event.note_length === 4 ? 'selected' : ''}>4 (Quarter)</option>
-                <option value="8" ${event.note_length === 8 ? 'selected' : ''}>8 (Eighth)</option>
-                <option value="16" ${event.note_length === 16 ? 'selected' : ''}>16 (Sixteenth)</option>
-            </select>
+            <input type="text" class="input-control length-input" list="note-lengths" value="${event.note_length || '4'}" placeholder="e.g. 4.">
         </td>
         <td>
             <input type="text" class="input-control lyric-input" placeholder="e.g. kick" value="${event.lyric || ''}" ${event.foot === 'rest' ? 'disabled' : ''}>
@@ -117,7 +124,7 @@ function createTableRow(event, index) {
 
     // Hook inputs to update state directly when edited
     const footSelect = row.querySelector('.foot-select');
-    const lengthSelect = row.querySelector('.length-select');
+    const lengthInput = row.querySelector('.length-input');
     const lyricInput = row.querySelector('.lyric-input');
     const commentInput = row.querySelector('.comment-input');
     const deleteBtn = row.querySelector('.btn-delete');
@@ -138,8 +145,8 @@ function createTableRow(event, index) {
         }
     });
 
-    lengthSelect.addEventListener('change', (e) => {
-        events[index].note_length = parseInt(e.target.value);
+    lengthInput.addEventListener('input', (e) => {
+        events[index].note_length = e.target.value;
     });
 
     lyricInput.addEventListener('input', (e) => {
@@ -184,6 +191,10 @@ function deleteRow(index) {
 function clearTable() {
     events = [];
     renderTable();
+    if (currentView === 'json') {
+        rawJsonEditor.value = '[]';
+        jsonValidationError.classList.add('hidden');
+    }
 }
 
 // Load a preset sequence
@@ -191,6 +202,10 @@ function loadPreset(key) {
     if (PRESETS[key]) {
         events = JSON.parse(JSON.stringify(PRESETS[key])); // deep copy
         renderTable();
+        if (currentView === 'json') {
+            rawJsonEditor.value = JSON.stringify(events, null, 4);
+            jsonValidationError.classList.add('hidden');
+        }
         showView('welcome');
     }
 }
@@ -231,6 +246,13 @@ function resetPipelineStages() {
 
 // Run the full synthesizer pipeline API
 async function runPipeline() {
+    if (currentView === 'json') {
+        if (!syncJsonToTable()) {
+            alert("Please fix JSON validation errors before running the pipeline!");
+            return;
+        }
+    }
+
     if (events.length === 0) {
         alert("Please add at least one event row to synthesize!");
         return;
@@ -301,5 +323,76 @@ async function runPipeline() {
         stages.forEach(s => setStageStatus(s, 'error', '🔴'));
         errorMessage.innerText = err.message || err;
         showView('error');
+    }
+}
+
+// Raw JSON View Switching and Validation
+function switchEditorView(view) {
+    if (view === currentView) return;
+
+    if (view === 'json') {
+        // Sync table events to JSON editor
+        rawJsonEditor.value = JSON.stringify(events, null, 4);
+        jsonValidationError.classList.add('hidden');
+        
+        tableViewContainer.classList.add('hidden');
+        jsonEditorContainer.classList.remove('hidden');
+        
+        // Hide add/clear buttons since we are in raw text mode
+        addRowBtn.classList.add('hidden');
+        clearTableBtn.classList.add('hidden');
+        
+        tabTable.classList.remove('active');
+        tabJson.classList.add('active');
+        currentView = 'json';
+    } else {
+        // Switch back to table view: Parse JSON first
+        if (syncJsonToTable()) {
+            jsonEditorContainer.classList.add('hidden');
+            tableViewContainer.classList.remove('hidden');
+            
+            addRowBtn.classList.remove('hidden');
+            clearTableBtn.classList.remove('hidden');
+            
+            tabJson.classList.remove('active');
+            tabTable.classList.add('active');
+            currentView = 'table';
+        }
+    }
+}
+
+function syncJsonToTable() {
+    try {
+        const parsed = JSON.parse(rawJsonEditor.value);
+        if (!Array.isArray(parsed)) {
+            throw new Error("JSON root must be an array of events.");
+        }
+        // Basic validation of fields
+        for (let i = 0; i < parsed.length; i++) {
+            const ev = parsed[i];
+            if (typeof ev !== 'object' || ev === null) {
+                throw new Error(`Event at index ${i} is not a valid object.`);
+            }
+            if (!ev.foot) {
+                throw new Error(`Event at index ${i} is missing the "foot" field.`);
+            }
+            // Normalize note_length to string
+            if (ev.note_length !== undefined) {
+                ev.note_length = String(ev.note_length);
+            } else {
+                ev.note_length = "4";
+            }
+            ev.lyric = ev.lyric !== undefined ? String(ev.lyric) : "";
+            ev.comment = ev.comment !== undefined ? String(ev.comment) : "";
+        }
+        
+        events = parsed;
+        renderTable();
+        jsonValidationError.classList.add('hidden');
+        return true;
+    } catch (err) {
+        jsonValidationError.innerText = `⚠️ JSON Parse Error: ${err.message}`;
+        jsonValidationError.classList.remove('hidden');
+        return false;
     }
 }

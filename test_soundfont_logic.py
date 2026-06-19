@@ -66,3 +66,29 @@ def test_ibag_modulator_links_are_zero(mock_presets):
         mod_val = struct.unpack('<H', data[idx:idx+2])[0]
         assert mod_val == 0, f"Found corrupted non-zero modulator link index: {mod_val}"
 
+def test_parse_lilypond_duration():
+    """
+    Test parsing of arbitrary LilyPond note durations to beats.
+    """
+    from web_server import parse_lilypond_duration
+    
+    assert parse_lilypond_duration("4") == 1.0
+    assert parse_lilypond_duration("2") == 2.0
+    assert parse_lilypond_duration("1") == 4.0
+    assert parse_lilypond_duration("8") == 0.5
+    assert parse_lilypond_duration("16") == 0.25
+    
+    # Dotted durations
+    assert parse_lilypond_duration("4.") == 1.5
+    assert parse_lilypond_duration("4..") == 1.75
+    assert parse_lilypond_duration("8.") == 0.75
+    
+    # Multipliers
+    assert parse_lilypond_duration("8*2/3") == pytest.approx(1.0 / 3.0)
+    assert parse_lilypond_duration("4*2") == 2.0
+    assert parse_lilypond_duration("4*3/2") == 1.5
+    
+    # Defaults and invalid strings
+    assert parse_lilypond_duration("") == 1.0
+    assert parse_lilypond_duration("invalid") == 1.0
+

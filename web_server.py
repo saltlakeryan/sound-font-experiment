@@ -2,8 +2,44 @@ import os
 import subprocess
 import wave
 import json
+import re
 from flask import Flask, request, jsonify, send_from_directory
 from piper import PiperVoice, SynthesisConfig
+
+def parse_lilypond_duration(duration_str: str) -> float:
+    """
+    Parses a LilyPond duration string (e.g. '4', '4.', '8*2/3', '4..')
+    and returns its length in quarter-note beats.
+    Returns 1.0 (equivalent to a quarter note '4') on parsing failure.
+    """
+    if not duration_str:
+        return 1.0
+    
+    # Matches: base_number, optional dots, optional *numerator, optional /denominator
+    pattern = r'^([1-9][0-9]*)(\.*)(?:\*([1-9][0-9]*)(?:/([1-9][0-9]*))?)?$'
+    match = re.match(pattern, str(duration_str).strip())
+    if not match:
+        return 1.0
+        
+    base_str, dots_str, mult_num_str, mult_den_str = match.groups()
+    
+    # 1. Base duration (in beats): e.g. 4 -> 1.0 beat, 8 -> 0.5 beat
+    base_val = int(base_str)
+    beats = 4.0 / base_val
+    
+    # 2. Apply dots (e.g. '4.' -> 1.5 multiplier, '4..' -> 1.75 multiplier)
+    if dots_str:
+        dots_count = len(dots_str)
+        multiplier = 2.0 - (0.5 ** dots_count)
+        beats *= multiplier
+        
+    # 3. Apply explicit multiplier (e.g. '*2/3')
+    if mult_num_str:
+        num = int(mult_num_str)
+        den = int(mult_den_str) if mult_den_str else 1
+        beats *= (num / den)
+        
+    return beats
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -126,6 +162,15 @@ feetMelody = \\drummode {{
   \\layout {{ }}
   \\midi {{ \\tempo 4 = 120 }}
 }}
+
+\\markup {{
+  \\vspace #2
+  \\column {{
+    \\line {{ \\bold "Legend:" }}
+    \\line {{ "• Upper note (above staff): Right Foot" }}
+    \\line {{ "• Lower note (below staff): Left Foot" }}
+  }}
+}}
 """
         # Save LilyPond score
         ly_path = os.path.join(OUTPUT_DIR, "score.ly")
@@ -184,8 +229,9 @@ feetMelody = \\drummode {{
         for event in events:
             foot = event.get("foot", "left").lower()
             lyric = event.get("lyric", "").strip().lower()
-            note_length = int(event.get("note_length", 4))
-            duration = int((4 / note_length) * 480)
+            note_length_str = str(event.get("note_length", "4"))
+            beats = parse_lilypond_duration(note_length_str)
+            duration = int(beats * 480)
 
             if foot in ["left", "right"] and lyric in word_to_idx:
                 program_idx = word_to_idx[lyric]
