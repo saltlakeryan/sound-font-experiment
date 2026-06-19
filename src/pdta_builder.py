@@ -1,10 +1,10 @@
 import struct
 import io
-from riffwriter import Chunk, ListEntry
-from ibag_builder import build_dynamic_ibag_chunk
-from imod_builder import build_dynamic_imod_chunk
-from igen_builder import build_dynamic_igen_chunk
-from shdr_builder import build_dynamic_shdr_chunk
+from src.riffwriter import Chunk, ListEntry
+from src.ibag_builder import build_dynamic_ibag_chunk
+from src.imod_builder import build_dynamic_imod_chunk
+from src.igen_builder import build_dynamic_igen_chunk
+from src.shdr_builder import build_dynamic_shdr_chunk
 
 def build_pdta_list(presets) -> ListEntry:
     phdr_data = io.BytesIO()

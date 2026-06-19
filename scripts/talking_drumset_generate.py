@@ -1,8 +1,7 @@
 import os
 import wave
 from piper import PiperVoice, SynthesisConfig
-# Assuming you keep the same file name or update it
-from pipeline_compiler import compile_drumkit_presets 
+from src.pipeline_compiler import compile_drumkit_presets 
 
 WORKING_DIR = "/app/output/"
 MODEL_PATH = "/usr/share/piper/models/en_US-lessac-medium.onnx"

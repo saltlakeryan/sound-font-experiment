@@ -27,8 +27,7 @@
                     <h2>Event Sequence Editor</h2>
                     <div class="preset-controls">
                         <span class="control-label">Load Preset:</span>
-                        <button id="preset-dance" class="btn btn-secondary btn-sm">Dance Routine</button>
-                        <button id="preset-charleston" class="btn btn-secondary btn-sm">Charleston Basic</button>
+                        <div id="preset-buttons-container" style="display: inline-flex; gap: 8px;"></div>
                         
                         <span class="control-divider">|</span>
                         
@@ -43,6 +42,7 @@
                 <div class="editor-tabs">
                     <button id="tab-table" class="tab-btn active">📋 Table View</button>
                     <button id="tab-json" class="tab-btn">📝 JSON Text Editor</button>
+                    <button id="tab-csv" class="tab-btn">📊 CSV Text Editor</button>
                 </div>
 
                 <div class="table-container" id="table-view-container">
@@ -65,7 +65,12 @@
 
                 <div id="json-editor-container" class="json-container hidden">
                     <div id="json-validation-error" class="error-banner hidden"></div>
-                    <textarea id="raw-json-editor" class="input-control font-mono" placeholder='[{"foot": "left", "note_length": "4", "lyric": "kick", "comment": "charleston"}]'></textarea>
+                    <textarea id="raw-json-editor" class="input-control font-mono" placeholder='[{"foot": "left", "note_length": "4", "lyric": "kick", "comment": "basic"}]'></textarea>
+                </div>
+
+                <div id="csv-editor-container" class="json-container hidden">
+                    <div id="csv-validation-error" class="error-banner hidden"></div>
+                    <textarea id="raw-csv-editor" class="input-control font-mono" placeholder="foot,note_length,lyric,comment&#10;left,4,quick,basic"></textarea>
                 </div>
 
                 <div class="editor-actions">
@@ -79,6 +84,10 @@
                         <button id="import-json-btn" class="btn btn-outline btn-sm">📥 Import JSON</button>
                         <button id="export-json-btn" class="btn btn-outline btn-sm">📤 Export JSON</button>
                         <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                        <span class="control-divider">|</span>
+                        <button id="import-csv-btn" class="btn btn-outline btn-sm">📥 Import CSV</button>
+                        <button id="export-csv-btn" class="btn btn-outline btn-sm">📤 Export CSV</button>
+                        <input type="file" id="import-csv-input" accept=".csv" style="display: none;">
                     </div>
                     <div class="editor-actions-right">
                         <button id="run-pipeline-btn" class="btn btn-primary btn-glow">
@@ -153,10 +162,19 @@
 
                         <!-- Right Sub-panel: Audio Master & Downloads -->
                         <div class="downloads-panel">
-                            <h3>Audio Master</h3>
+                            <h3>Audio Masters</h3>
                             <div class="audio-player-card">
-                                <div class="player-title">Talking Vocal Melody Render</div>
+                                <div class="player-title">🗣️ Vocal Talking Render</div>
                                 <audio id="audio-player" controls></audio>
+                            </div>
+                            <div class="audio-player-card">
+                                <div class="player-title">🥁 Percussion Woodblock Render</div>
+                                <audio id="audio-player-perc" controls></audio>
+                            </div>
+
+                            <h3>Scrolling Notation Video</h3>
+                            <div class="audio-player-card">
+                                <video id="video-player" controls width="100%"></video>
                             </div>
 
                             <h3>Artifact Downloads</h3>
@@ -166,6 +184,13 @@
                                     <div class="file-details">
                                         <div class="file-name">score.pdf</div>
                                         <div class="file-desc">Printable Sheet Music</div>
+                                    </div>
+                                </a>
+                                <a id="download-ly" href="#" download class="download-link">
+                                    <span class="file-icon">🎼📄</span>
+                                    <div class="file-details">
+                                        <div class="file-name">score.ly</div>
+                                        <div class="file-desc">LilyPond Notation Source</div>
                                     </div>
                                 </a>
                                 <a id="download-wav" href="#" download class="download-link">
@@ -194,6 +219,27 @@
                                     <div class="file-details">
                                         <div class="file-name">score.midi</div>
                                         <div class="file-desc">Raw Percussion MIDI File</div>
+                                    </div>
+                                </a>
+                                <a id="download-wav-perc" href="#" download class="download-link">
+                                    <span class="file-icon">🥁🔊</span>
+                                    <div class="file-details">
+                                        <div class="file-name">percussion.wav</div>
+                                        <div class="file-desc">FluidSynth Woodblocks Render</div>
+                                    </div>
+                                </a>
+                                <a id="download-midi-perc" href="#" download class="download-link">
+                                    <span class="file-icon">🥁🎵</span>
+                                    <div class="file-details">
+                                        <div class="file-name">percussion.mid</div>
+                                        <div class="file-desc">Percussion Woodblocks MIDI</div>
+                                    </div>
+                                </a>
+                                <a id="download-video" href="#" download class="download-link">
+                                    <span class="file-icon">🎬</span>
+                                    <div class="file-details">
+                                        <div class="file-name">score.mp4</div>
+                                        <div class="file-desc">Scrolling Sheet Music Video</div>
                                     </div>
                                 </a>
                             </div>

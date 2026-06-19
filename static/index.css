@@ -486,7 +486,7 @@ select.input-control {
 
 .results-grid {
     display: grid;
-    grid-template-rows: 1.2fr 0.8fr;
+    grid-template-rows: auto auto;
     gap: 20px;
     flex-grow: 1;
 }
@@ -703,7 +703,7 @@ select.input-control {
     padding: 16px;
 }
 
-#raw-json-editor {
+#raw-json-editor, #raw-csv-editor {
     flex-grow: 1;
     background-color: rgba(11, 15, 25, 0.3);
     border: 1px solid var(--border-color);
@@ -720,7 +720,7 @@ select.input-control {
     transition: var(--transition);
 }
 
-#raw-json-editor:focus {
+#raw-json-editor:focus, #raw-csv-editor:focus {
     border-color: var(--secondary);
     box-shadow: 0 0 0 2px var(--secondary-glow);
 }

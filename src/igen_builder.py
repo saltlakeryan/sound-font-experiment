@@ -1,6 +1,6 @@
 import io
 import struct
-from riffwriter import Chunk
+from src.riffwriter import Chunk
 
 def build_dynamic_igen_chunk(presets: list) -> Chunk:
     """

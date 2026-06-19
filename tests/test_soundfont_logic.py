@@ -1,8 +1,8 @@
 import pytest
 import struct
-from riffwriter import Chunk
-from pdta_builder import build_pdta_list
-from imod_builder import build_dynamic_imod_chunk
+from src.riffwriter import Chunk
+from src.pdta_builder import build_pdta_list
+from src.imod_builder import build_dynamic_imod_chunk
 
 # Mock a simple, dynamic multi-preset payload layout array
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_ibag_modulator_links_are_zero(mock_presets):
     Enforce that inside ibag, the second field (wInstModNdx) stays strictly
     at 0 to satisfy Polyphone's constraint boundaries.
     """
-    from ibag_builder import build_dynamic_ibag_chunk
+    from src.ibag_builder import build_dynamic_ibag_chunk
     ibag_chunk = build_dynamic_ibag_chunk(mock_presets)
     data = ibag_chunk.data
     

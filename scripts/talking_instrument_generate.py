@@ -1,7 +1,7 @@
 import os
 import wave
 from piper import PiperVoice, SynthesisConfig
-from pipeline_compiler import compile_vocal_word_presets
+from src.pipeline_compiler import compile_vocal_word_presets
 
 WORKING_DIR = "/app/output/"
 MODEL_PATH = "/usr/share/piper/models/en_US-lessac-medium.onnx"

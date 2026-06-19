@@ -1,5 +1,5 @@
 import io
-from riffwriter import Chunk, ListEntry
+from src.riffwriter import Chunk, ListEntry
 
 def build_sdta_list(raw_pcm_data: bytes) -> ListEntry:
     """

@@ -1,5 +1,5 @@
 import struct
-from riffwriter import Chunk
+from src.riffwriter import Chunk
 
 def build_dynamic_imod_chunk(presets: list) -> Chunk:
     """

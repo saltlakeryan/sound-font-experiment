@@ -70,6 +70,7 @@ RUN chmod +x /src/bin/polyphone
 RUN apt-get update && apt-get install -y --no-install-recommends \
     lilypond \
     ghostscript \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 #########################################################################
 
@@ -96,6 +97,9 @@ RUN mkdir -p /usr/share/piper/models
 # 3. FIX: Calibrated flag arguments using --download-dir to permanently cache model
 RUN python3 -m piper.download_voices --download-dir /usr/share/piper/models en_US-lessac-medium
 
-RUN pip install --no-cache-dir --break-system-packages mido flask
+RUN pip install --no-cache-dir --break-system-packages mido flask Pillow pexpect
+COPY ly2video /src/ly2video
+RUN pip install --no-cache-dir --break-system-packages /src/ly2video
 
 WORKDIR /app
+

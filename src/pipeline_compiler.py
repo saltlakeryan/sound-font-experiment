@@ -1,6 +1,6 @@
 import os
 import struct
-from soundfont_builder2 import SoundFontBuilder2
+from src.soundfont_builder2 import SoundFontBuilder2
 
 def compile_vocal_word_presets(words: list, working_dir: str, output_name: str, sample_rate: int = 22050):
     """

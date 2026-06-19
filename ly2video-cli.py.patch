@@ -1,0 +1,52 @@
+diff --git a/ly2video/cli.py b/ly2video/cli.py
+index c263d3a..b3559e5 100755
+--- a/ly2video/cli.py
++++ b/ly2video/cli.py
+@@ -840,6 +840,10 @@ def parseOptions():
+         help="input file prefix to generate a slide show "
+         "(see doc/slideshow.txt)",
+         metavar="SLIDESHOW-PREFIX")
++    group_inout.add_argument(
++        "--audio-file", dest="audioFile",
++        help="name of custom audio file to merge instead of using timidity",
++        metavar="AUDIO-FILE", default=None)
+     group_inout.add_argument(
+         "-o", "--output",
+         help='name of output video (e.g. "myNotes.avi") '
+@@ -1118,10 +1122,12 @@ def findExecutableDependencies(options):
+         fatal("FFmpeg was not found (maybe use --windows-ffmpeg?).", 2)
+     progress("FFmpeg was found.")
+ 
+-    timidity = options.winTimidity + "timidity"
+-    if os.system(timidity + " -v" + redirectToNull) != 0:
+-        fatal("TiMidity++ was not found (maybe use --windows-timidity?).", 3)
+-    progress("TiMidity++ was found.")
++    timidity = None
++    if not options.audioFile:
++        timidity = options.winTimidity + "timidity"
++        if os.system(timidity + " -v" + redirectToNull) != 0:
++            fatal("TiMidity++ was not found (maybe use --windows-timidity?).", 3)
++        progress("TiMidity++ was found.")
+ 
+     output_divider_line()
+ 
+@@ -1384,6 +1390,7 @@ def writeSpaceTimeDumper():
+   \context {
+     \DrumVoice
+     \override NoteHead.after-line-breaking = #dump-spacetime-info
++    \override DrumNoteHead.after-line-breaking = #dump-spacetime-info
+   }
+   \context {
+     \DrumStaff
+@@ -1641,7 +1648,10 @@ def main():
+     #  frameWriter.write()
+     output_divider_line()
+ 
+-    wavPath = genWavFile(timidity, midiPath)
++    if options.audioFile:
++        wavPath = absPathFromRunDir(options.audioFile)
++    else:
++        wavPath = genWavFile(timidity, midiPath)
+ 
+     output_divider_line()
+ 

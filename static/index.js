@@ -4,13 +4,17 @@ const addRowBtn = document.getElementById('add-row-btn');
 const clearTableBtn = document.getElementById('clear-table-btn');
 const runPipelineBtn = document.getElementById('run-pipeline-btn');
 
-// Raw JSON Editor Tabs and Elements
+// Editor Tabs and Elements (JSON and CSV)
 const tabTable = document.getElementById('tab-table');
 const tabJson = document.getElementById('tab-json');
+const tabCsv = document.getElementById('tab-csv');
 const tableViewContainer = document.getElementById('table-view-container');
 const jsonEditorContainer = document.getElementById('json-editor-container');
+const csvEditorContainer = document.getElementById('csv-editor-container');
 const rawJsonEditor = document.getElementById('raw-json-editor');
+const rawCsvEditor = document.getElementById('raw-csv-editor');
 const jsonValidationError = document.getElementById('json-validation-error');
+const csvValidationError = document.getElementById('csv-validation-error');
 let currentView = 'table';
 
 // Custom Preset Management & Import/Export Elements
@@ -21,6 +25,10 @@ const importJsonBtn = document.getElementById('import-json-btn');
 const exportJsonBtn = document.getElementById('export-json-btn');
 const importFileInput = document.getElementById('import-file-input');
 
+const importCsvBtn = document.getElementById('import-csv-btn');
+const exportCsvBtn = document.getElementById('export-csv-btn');
+const importCsvInput = document.getElementById('import-csv-input');
+
 const welcomeView = document.getElementById('welcome-view');
 const loadingView = document.getElementById('loading-view');
 const errorView = document.getElementById('error-view');
@@ -30,48 +38,25 @@ const errorDismissBtn = document.getElementById('error-dismiss-btn');
 
 const pdfViewer = document.getElementById('pdf-viewer');
 const audioPlayer = document.getElementById('audio-player');
+const audioPlayerPerc = document.getElementById('audio-player-perc');
+const videoPlayer = document.getElementById('video-player');
 
 const downloadPdf = document.getElementById('download-pdf');
+const downloadLy = document.getElementById('download-ly');
 const downloadWav = document.getElementById('download-wav');
 const downloadSf2 = document.getElementById('download-sf2');
 const downloadMidiVocal = document.getElementById('download-midi-vocal');
 const downloadMidiRaw = document.getElementById('download-midi-raw');
+const downloadWavPerc = document.getElementById('download-wav-perc');
+const downloadMidiPerc = document.getElementById('download-midi-perc');
+const downloadVideo = document.getElementById('download-video');
 
-// Preset Buttons
-const presetDanceBtn = document.getElementById('preset-dance');
-const presetCharlestonBtn = document.getElementById('preset-charleston');
-
-// Presets Data
-const PRESETS = {
-    dance: [
-        { foot: 'left', note_length: 4, lyric: 'fall', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'off', comment: 'R' },
-        { foot: 'left', note_length: 4, lyric: 'the', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'log', comment: 'R' },
-        { foot: 'left', note_length: 4, lyric: 'stomp', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'kick', comment: 'R' },
-        { foot: 'left', note_length: 4, lyric: 'kickback', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'rock', comment: 'R' },
-        { foot: 'left', note_length: 4, lyric: 'step', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'ball', comment: 'R' },
-        { foot: 'left', note_length: 4, lyric: 'tap', comment: 'L' },
-        { foot: 'right', note_length: 4, lyric: 'heel', comment: 'R' }
-    ],
-    charleston: [
-        { foot: 'left', note_length: 4, lyric: 'step', comment: 'step forward' },
-        { foot: 'right', note_length: 4, lyric: 'kick', comment: 'kick front' },
-        { foot: 'right', note_length: 4, lyric: 'step', comment: 'step back' },
-        { foot: 'left', note_length: 4, lyric: 'touch', comment: 'touch behind' },
-        { foot: 'left', note_length: 4, lyric: 'step', comment: 'step forward' },
-        { foot: 'right', note_length: 4, lyric: 'kick', comment: 'kick front' },
-        { foot: 'right', note_length: 4, lyric: 'step', comment: 'step back' },
-        { foot: 'left', note_length: 4, lyric: 'touch', comment: 'touch behind' }
-    ]
-};
+// Presets Data Cache (Dynamically populated from static/presets)
+let PRESETS = {};
 
 // Event List Array (Initial State)
 let events = [
-    { foot: 'left', note_length: 4, lyric: 'kick', comment: 'charleston' },
+    { foot: 'left', note_length: 4, lyric: 'kick', comment: 'basic' },
     { foot: 'right', note_length: 4, lyric: 'step', comment: 'basic' },
     { foot: 'left', note_length: 4, lyric: 'tap', comment: 'sync' },
     { foot: 'right', note_length: 4, lyric: 'stomp', comment: 'downbeat' }
@@ -87,12 +72,13 @@ window.addEventListener('DOMContentLoaded', () => {
     runPipelineBtn.addEventListener('click', () => runPipeline());
     errorDismissBtn.addEventListener('click', () => showView('welcome'));
 
-    presetDanceBtn.addEventListener('click', () => loadPreset('dance'));
-    presetCharlestonBtn.addEventListener('click', () => loadPreset('charleston'));
+    // Load dynamic presets from subdirectory
+    initializePresets();
 
-    // Wire raw JSON view toggles
+    // Wire raw view toggles
     tabTable.addEventListener('click', () => switchEditorView('table'));
     tabJson.addEventListener('click', () => switchEditorView('json'));
+    tabCsv.addEventListener('click', () => switchEditorView('csv'));
 
     // Preset management triggers
     savePresetBtn.addEventListener('click', () => savePresetToBrowser());
@@ -103,6 +89,10 @@ window.addEventListener('DOMContentLoaded', () => {
     exportJsonBtn.addEventListener('click', () => exportSequence());
     importJsonBtn.addEventListener('click', () => importFileInput.click());
     importFileInput.addEventListener('change', (e) => handleFileImport(e));
+
+    exportCsvBtn.addEventListener('click', () => exportCSVSequence());
+    importCsvBtn.addEventListener('click', () => importCsvInput.click());
+    importCsvInput.addEventListener('change', (e) => handleCSVImport(e));
 
     // Initial load of custom presets
     loadSavedPresetsList();
@@ -215,20 +205,36 @@ function clearTable() {
     if (currentView === 'json') {
         rawJsonEditor.value = '[]';
         jsonValidationError.classList.add('hidden');
+    } else if (currentView === 'csv') {
+        rawCsvEditor.value = 'foot,note_length,lyric,comment\n';
+        csvValidationError.classList.add('hidden');
     }
 }
 
-// Load a preset sequence
-function loadPreset(key) {
-    if (PRESETS[key]) {
-        events = JSON.parse(JSON.stringify(PRESETS[key])); // deep copy
-        renderTable();
-        if (currentView === 'json') {
-            rawJsonEditor.value = JSON.stringify(events, null, 4);
-            jsonValidationError.classList.add('hidden');
+// Load a preset sequence (with dynamic lazy-loading from server subdirectory)
+async function loadPreset(key) {
+    if (!PRESETS[key]) {
+        try {
+            const response = await fetch(`/presets/${key}.json`);
+            if (!response.ok) throw new Error(`Status: ${response.status}`);
+            const data = await response.json();
+            PRESETS[key] = data;
+        } catch (err) {
+            alert(`Failed to load preset "${key}": ${err.message}`);
+            return;
         }
-        showView('welcome');
     }
+    
+    events = JSON.parse(JSON.stringify(PRESETS[key])); // deep copy
+    renderTable();
+    if (currentView === 'json') {
+        rawJsonEditor.value = JSON.stringify(events, null, 4);
+        jsonValidationError.classList.add('hidden');
+    } else if (currentView === 'csv') {
+        rawCsvEditor.value = generateCSVString(events);
+        csvValidationError.classList.add('hidden');
+    }
+    showView('welcome');
 }
 
 // Helper to toggle visible cards
@@ -270,6 +276,11 @@ async function runPipeline() {
     if (currentView === 'json') {
         if (!syncJsonToTable()) {
             alert("Please fix JSON validation errors before running the pipeline!");
+            return;
+        }
+    } else if (currentView === 'csv') {
+        if (!syncCsvToTable()) {
+            alert("Please fix CSV validation errors before running the pipeline!");
             return;
         }
     }
@@ -323,16 +334,27 @@ async function runPipeline() {
             // Populate output UI elements
             pdfViewer.src = result.files.pdf;
             
-            // Reload audio tag to play fresh file
+            // Reload audio tags to play fresh files
             audioPlayer.src = result.files.audio;
             audioPlayer.load();
 
+            audioPlayerPerc.src = result.files.audio_perc;
+            audioPlayerPerc.load();
+
+            // Load video player source
+            videoPlayer.src = result.files.video;
+            videoPlayer.load();
+
             // Set download hrefs
             downloadPdf.href = result.files.pdf;
+            downloadLy.href = result.files.ly;
             downloadWav.href = result.files.audio;
             downloadSf2.href = result.files.soundfont;
             downloadMidiVocal.href = result.files.midi_vocal;
             downloadMidiRaw.href = result.files.midi_raw;
+            downloadWavPerc.href = result.files.audio_perc;
+            downloadMidiPerc.href = result.files.midi_perc;
+            downloadVideo.href = result.files.video;
 
             showView('output');
         }, 800);
@@ -380,10 +402,15 @@ function loadSavedPresetsList(selectName = "") {
 }
 
 function savePresetToBrowser() {
-    // Sync JSON first if in text editor view
+    // Sync editor first if in text editor views
     if (currentView === 'json') {
         if (!syncJsonToTable()) {
             alert("Please fix JSON validation errors before saving!");
+            return;
+        }
+    } else if (currentView === 'csv') {
+        if (!syncCsvToTable()) {
+            alert("Please fix CSV validation errors before saving!");
             return;
         }
     }
@@ -416,6 +443,9 @@ function loadUserPreset(name) {
         if (currentView === 'json') {
             rawJsonEditor.value = JSON.stringify(events, null, 4);
             jsonValidationError.classList.add('hidden');
+        } else if (currentView === 'csv') {
+            rawCsvEditor.value = generateCSVString(events);
+            csvValidationError.classList.add('hidden');
         }
         
         deletePresetBtn.disabled = false;
@@ -437,10 +467,15 @@ function deletePresetFromBrowser() {
 
 // File Import/Export Operations
 function exportSequence() {
-    // Sync JSON first if in text editor view
+    // Sync editor first if in text editor views
     if (currentView === 'json') {
         if (!syncJsonToTable()) {
             alert("Please fix JSON validation errors before exporting!");
+            return;
+        }
+    } else if (currentView === 'csv') {
+        if (!syncCsvToTable()) {
+            alert("Please fix CSV validation errors before exporting!");
             return;
         }
     }
@@ -496,6 +531,9 @@ function handleFileImport(e) {
             if (currentView === 'json') {
                 rawJsonEditor.value = JSON.stringify(events, null, 4);
                 jsonValidationError.classList.add('hidden');
+            } else if (currentView === 'csv') {
+                rawCsvEditor.value = generateCSVString(events);
+                csvValidationError.classList.add('hidden');
             }
             
             userPresetsSelect.selectedIndex = 0;
@@ -513,38 +551,212 @@ function handleFileImport(e) {
     reader.readAsText(file);
 }
 
-// Raw JSON View Switching and Validation
+function handleCSVImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const text = evt.target.result;
+            const parsed = parseCSV(text);
+            
+            events = parsed;
+            renderTable();
+            
+            if (currentView === 'json') {
+                rawJsonEditor.value = JSON.stringify(events, null, 4);
+                jsonValidationError.classList.add('hidden');
+            } else if (currentView === 'csv') {
+                rawCsvEditor.value = generateCSVString(events);
+                csvValidationError.classList.add('hidden');
+            }
+            
+            userPresetsSelect.selectedIndex = 0;
+            deletePresetBtn.disabled = true;
+            
+            showView('welcome');
+            alert("Sequence imported successfully from CSV!");
+            
+        } catch (err) {
+            alert(`CSV Import Failed: ${err.message}`);
+        } finally {
+            importCsvInput.value = ''; // Reset input to allow re-importing the same file
+        }
+    };
+    reader.readAsText(file);
+}
+
+function parseCSV(text) {
+    const lines = text.split(/\r?\n/);
+    if (lines.length === 0 || !lines[0].trim()) {
+        throw new Error("CSV file is empty.");
+    }
+    
+    // Parse header row
+    const headers = parseCSVLine(lines[0]);
+    const footIndex = headers.findIndex(h => h.toLowerCase() === 'foot');
+    const noteLengthIndex = headers.findIndex(h => h.toLowerCase() === 'note_length');
+    const lyricIndex = headers.findIndex(h => h.toLowerCase() === 'lyric');
+    const commentIndex = headers.findIndex(h => h.toLowerCase() === 'comment');
+    
+    if (footIndex === -1) {
+        throw new Error("CSV must contain a 'foot' column.");
+    }
+    
+    const parsedEvents = [];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue; // Skip empty lines
+        
+        const values = parseCSVLine(line);
+        if (values.length === 0) continue;
+        
+        // Pad values array if it's shorter than headers
+        while (values.length < headers.length) {
+            values.push('');
+        }
+        
+        const event = {
+            foot: values[footIndex] ? values[footIndex].toLowerCase() : 'left',
+            note_length: noteLengthIndex !== -1 && values[noteLengthIndex] ? values[noteLengthIndex] : '4',
+            lyric: lyricIndex !== -1 && values[lyricIndex] ? values[lyricIndex] : '',
+            comment: commentIndex !== -1 && values[commentIndex] ? values[commentIndex] : ''
+        };
+        
+        // Normalize foot
+        if (event.foot !== 'left' && event.foot !== 'right' && event.foot !== 'rest') {
+            event.foot = 'left';
+        }
+        parsedEvents.push(event);
+    }
+    return parsedEvents;
+}
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result.map(v => {
+        let clean = v.trim();
+        if (clean.startsWith('"') && clean.endsWith('"')) {
+            clean = clean.substring(1, clean.length - 1).trim();
+        }
+        return clean;
+    });
+}
+
+function exportCSVSequence() {
+    if (currentView === 'json') {
+        if (!syncJsonToTable()) {
+            alert("Please fix JSON validation errors before exporting!");
+            return;
+        }
+    } else if (currentView === 'csv') {
+        if (!syncCsvToTable()) {
+            alert("Please fix CSV validation errors before exporting!");
+            return;
+        }
+    }
+
+    if (events.length === 0) {
+        alert("Cannot export an empty sequence!");
+        return;
+    }
+
+    // Header row
+    let csvContent = "foot,note_length,lyric,comment\n";
+    
+    // Data rows
+    events.forEach(ev => {
+        const foot = ev.foot || 'left';
+        const noteLength = ev.note_length || '4';
+        
+        // Escape quotes and wrap in quotes if contains commas or quotes
+        const formatField = (field) => {
+            const str = String(field || '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+        
+        const lyric = formatField(ev.lyric);
+        const comment = formatField(ev.comment);
+        
+        csvContent += `${foot},${noteLength},${lyric},${comment}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sequence.csv';
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// View Switching and Validation
 function switchEditorView(view) {
     if (view === currentView) return;
 
+    // Sync current active editor back to events table first
+    if (currentView === 'json') {
+        if (!syncJsonToTable()) return;
+    } else if (currentView === 'csv') {
+        if (!syncCsvToTable()) return;
+    }
+
+    // Deactivate all tab selectors and hide all pane containers
+    tabTable.classList.remove('active');
+    tabJson.classList.remove('active');
+    tabCsv.classList.remove('active');
+    
+    tableViewContainer.classList.add('hidden');
+    jsonEditorContainer.classList.add('hidden');
+    csvEditorContainer.classList.add('hidden');
+
     if (view === 'json') {
-        // Sync table events to JSON editor
         rawJsonEditor.value = JSON.stringify(events, null, 4);
         jsonValidationError.classList.add('hidden');
-        
-        tableViewContainer.classList.add('hidden');
         jsonEditorContainer.classList.remove('hidden');
+        tabJson.classList.add('active');
         
-        // Hide add/clear buttons since we are in raw text mode
         addRowBtn.classList.add('hidden');
         clearTableBtn.classList.add('hidden');
-        
-        tabTable.classList.remove('active');
-        tabJson.classList.add('active');
         currentView = 'json';
+    } else if (view === 'csv') {
+        rawCsvEditor.value = generateCSVString(events);
+        csvValidationError.classList.add('hidden');
+        csvEditorContainer.classList.remove('hidden');
+        tabCsv.classList.add('active');
+        
+        addRowBtn.classList.add('hidden');
+        clearTableBtn.classList.add('hidden');
+        currentView = 'csv';
     } else {
-        // Switch back to table view: Parse JSON first
-        if (syncJsonToTable()) {
-            jsonEditorContainer.classList.add('hidden');
-            tableViewContainer.classList.remove('hidden');
-            
-            addRowBtn.classList.remove('hidden');
-            clearTableBtn.classList.remove('hidden');
-            
-            tabJson.classList.remove('active');
-            tabTable.classList.add('active');
-            currentView = 'table';
-        }
+        tableViewContainer.classList.remove('hidden');
+        tabTable.classList.add('active');
+        
+        addRowBtn.classList.remove('hidden');
+        clearTableBtn.classList.remove('hidden');
+        currentView = 'table';
     }
 }
 
@@ -582,4 +794,73 @@ function syncJsonToTable() {
         jsonValidationError.classList.remove('hidden');
         return false;
     }
+}
+
+function syncCsvToTable() {
+    try {
+        const parsed = parseCSV(rawCsvEditor.value);
+        events = parsed;
+        renderTable();
+        csvValidationError.classList.add('hidden');
+        return true;
+    } catch (err) {
+        csvValidationError.innerText = `⚠️ CSV Parse Error: ${err.message}`;
+        csvValidationError.classList.remove('hidden');
+        return false;
+    }
+}
+
+function generateCSVString(eventList) {
+    let csvContent = "foot,note_length,lyric,comment\n";
+    eventList.forEach(ev => {
+        const foot = ev.foot || 'left';
+        const noteLength = ev.note_length || '4';
+        
+        const formatField = (field) => {
+            const str = String(field || '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+        
+        const lyric = formatField(ev.lyric);
+        const comment = formatField(ev.comment);
+        
+        csvContent += `${foot},${noteLength},${lyric},${comment}\n`;
+    });
+    return csvContent;
+}
+
+// Preset Resolver Utilities
+async function initializePresets() {
+    try {
+        const response = await fetch('/presets');
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
+        const keys = await response.json();
+        
+        const container = document.getElementById('preset-buttons-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        keys.forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-secondary btn-sm';
+            
+            // Format name nicely
+            let label = formatPresetName(key);
+            if (key === 'dance') label = 'Dance Routine';
+            else if (key === 'balboa') label = 'Balboa Preset';
+            
+            btn.innerText = label;
+            btn.addEventListener('click', () => loadPreset(key));
+            container.appendChild(btn);
+        });
+    } catch (err) {
+        console.error("Failed to load dynamic presets:", err);
+    }
+}
+
+function formatPresetName(key) {
+    return key.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }

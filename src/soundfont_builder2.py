@@ -2,12 +2,12 @@ import struct
 import io
 from typing import List
 
-from pdta_builder import build_pdta_list
-from sdta_builder import build_sdta_list
+from src.pdta_builder import build_pdta_list
+from src.sdta_builder import build_sdta_list
 
 
 # Import your newly created riffwriter module
-from riffwriter import Chunk, ListEntry, write_entry
+from src.riffwriter import Chunk, ListEntry, write_entry
 
 class SoundFontBuilder2:
     def __init__(self, name="instrument_0"):

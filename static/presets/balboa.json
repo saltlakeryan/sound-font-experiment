@@ -1,0 +1,116 @@
+[
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "quick",
+        "comment": "basic"
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "quick",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "2",
+        "lyric": "slow",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "quick",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "quick",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "2",
+        "lyric": "slow",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "come",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "uh",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "2",
+        "lyric": "round",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "down",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "down",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "2",
+        "lyric": "back",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "side",
+        "comment": "toss out"
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "step",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "2",
+        "lyric": "turn",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "back",
+        "comment": ""
+    },
+    {
+        "foot": "left",
+        "note_length": "4",
+        "lyric": "side",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "sweep",
+        "comment": ""
+    },
+    {
+        "foot": "right",
+        "note_length": "4",
+        "lyric": "turn",
+        "comment": ""
+    }
+]

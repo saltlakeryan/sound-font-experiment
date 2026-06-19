@@ -68,6 +68,17 @@ def generate_vocal_wav(output_path, text, voice_engine):
 def index():
     return app.send_static_file('index.html')
 
+@app.route('/presets')
+def list_presets():
+    try:
+        presets_dir = os.path.join(app.static_folder, 'presets')
+        if not os.path.exists(presets_dir):
+            return jsonify([])
+        files = [f.replace('.json', '') for f in os.listdir(presets_dir) if f.endswith('.json')]
+        return jsonify(sorted(files))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/files/<path:filename>')
 def serve_files(filename):
     return send_from_directory(OUTPUT_DIR, filename)
@@ -80,7 +91,7 @@ def generate():
             return jsonify({"error": "No event data received"}), 400
 
         # Step 1: Clean output directory of old assets to prevent caching issues
-        for fname in ["score.ly", "score.pdf", "score.midi", "talking_melody.mid", "talking_melody.wav", "talking_instrument.sf2"]:
+        for fname in ["score.ly", "score.pdf", "score.midi", "talking_melody.mid", "talking_melody.wav", "talking_instrument.sf2", "percussion.mid", "percussion.wav", "score.avi", "score.mp4"]:
             fpath = os.path.join(OUTPUT_DIR, fname)
             if os.path.exists(fpath):
                 os.remove(fpath)
@@ -97,8 +108,8 @@ def generate():
         for event in events:
             foot = event.get("foot", "left").lower()
             note_length = str(event.get("note_length", 4))
-            lyric = event.get("lyric", "").strip()
-            comment = event.get("comment", "").strip()
+            lyric = event.get("lyric", "").strip().replace('"', '\\"')
+            comment = event.get("comment", "").strip().replace('"', '\\"')
 
             if foot in ["left", "right"]:
                 note_repr = f"{foot}{note_length}"
@@ -127,10 +138,17 @@ def generate():
 
         ly_content = f"""\\version "2.24.0"
 
-#(define feet-pitches '(
-  (left . left) (right . right)
+#(define feet-drum-pitches '(
+  (left . left)
+  (right . right)
 ))
-#(set! drumPitchNames (append feet-pitches drumPitchNames))
+#(set! drumPitchNames (append feet-drum-pitches drumPitchNames))
+
+#(define feet-midi-pitches `(
+  (left . ,(ly:make-pitch -2 0 0))
+  (right . ,(ly:make-pitch 2 0 0))
+))
+#(set! midiDrumPitches (append feet-midi-pitches midiDrumPitches))
 
 #(define feet-kit '(
   (left          default       #f          -2)
@@ -151,6 +169,7 @@ feetMelody = \\drummode {{
       instrumentName = #"Feet"
       shortInstrumentName = #"F"
       drumStyleTable = #(alist->hash-table feet-kit)
+      drumPitchTable = #(alist->hash-table midiDrumPitches)
     }}
     <<
       \\new DrumVoice = "feetVoice" {{
@@ -202,7 +221,7 @@ feetMelody = \\drummode {{
 
         # Compile SoundFont using compiler modules
         print("🏗️ Assembling SoundFont binary...")
-        from pipeline_compiler import compile_vocal_word_presets
+        from src.pipeline_compiler import compile_vocal_word_presets
         compile_vocal_word_presets(
             words=unique_words,
             working_dir=OUTPUT_DIR,
@@ -264,6 +283,70 @@ feetMelody = \\drummode {{
             if os.path.exists(wav_path):
                 os.remove(wav_path)
 
+        # Step 5b: Build percussion MIDI file using GM Woodblocks (Low: 77, High: 76) on Channel 9
+        print("🎵 Constructing percussion MIDI...")
+        mid_perc = MidiFile()
+        mid_perc.ticks_per_beat = 480
+        track_perc = MidiTrack()
+        mid_perc.tracks.append(track_perc)
+
+        track_perc.append(MetaMessage('track_name', name='Percussion Woodblocks', time=0))
+        track_perc.append(MetaMessage('set_tempo', tempo=mido.bpm2tempo(120), time=0))
+
+        current_delay_perc = 0
+        for event in events:
+            foot = event.get("foot", "left").lower()
+            note_length_str = str(event.get("note_length", "4"))
+            beats = parse_lilypond_duration(note_length_str)
+            duration = int(beats * 480)
+
+            if foot == "left":
+                track_perc.append(Message('note_on', channel=9, note=77, velocity=100, time=current_delay_perc))
+                track_perc.append(Message('note_off', channel=9, note=77, velocity=64, time=duration))
+                current_delay_perc = 0
+            elif foot == "right":
+                track_perc.append(Message('note_on', channel=9, note=76, velocity=100, time=current_delay_perc))
+                track_perc.append(Message('note_off', channel=9, note=76, velocity=64, time=duration))
+                current_delay_perc = 0
+            else:
+                # Rest
+                current_delay_perc += duration
+
+        track_perc.append(MetaMessage('end_of_track', time=current_delay_perc))
+        midi_perc_path = os.path.join(OUTPUT_DIR, "percussion.mid")
+        mid_perc.save(midi_perc_path)
+
+        # Step 6b: Render percussion MIDI to WAV via FluidSynth using default GM SoundFont
+        print("🔊 Rendering percussion wav via FluidSynth...")
+        wav_perc_path = os.path.join(OUTPUT_DIR, "percussion.wav")
+        gm_sf2_path = "/usr/share/sounds/sf2/default-GM.sf2"
+        if not os.path.exists(gm_sf2_path):
+            gm_sf2_path = "/usr/share/sounds/sf2/TimGM6mb.sf2"
+        subprocess.run([
+            "fluidsynth", "-ni", "-F", wav_perc_path, gm_sf2_path, midi_perc_path
+        ], check=True)
+
+        # Step 7: Generate Scrolling Sheet Music Video via ly2video
+        print("📹 Generating scrolling sheet music video via ly2video...")
+        video_avi_path = os.path.join(OUTPUT_DIR, "score.avi")
+        video_mp4_path = os.path.join(OUTPUT_DIR, "score.mp4")
+        subprocess.run([
+            "ly2video", "-i", ly_path, "--audio-file", wav_out_path, "-o", video_avi_path
+        ], check=True)
+
+        # Step 8: Transcode AVI to streaming MP4 via FFmpeg
+        print("🎬 Transcoding video to MP4 for browser stream...")
+        subprocess.run([
+            "ffmpeg", "-y", "-i", video_avi_path,
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            video_mp4_path
+        ], check=True)
+
+        # Clean up temporary AVI video
+        if os.path.exists(video_avi_path):
+            os.remove(video_avi_path)
+
         print("🎉 Generation pipeline complete!")
         return jsonify({
             "success": True,
@@ -272,7 +355,11 @@ feetMelody = \\drummode {{
                 "midi_raw": "/files/score.midi",
                 "midi_vocal": "/files/talking_melody.mid",
                 "audio": "/files/talking_melody.wav",
-                "soundfont": "/files/talking_instrument.sf2"
+                "soundfont": "/files/talking_instrument.sf2",
+                "midi_perc": "/files/percussion.mid",
+                "audio_perc": "/files/percussion.wav",
+                "video": "/files/score.mp4",
+                "ly": "/files/score.ly"
             }
         })
 

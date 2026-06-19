@@ -1,0 +1,14 @@
+[
+    { "foot": "left", "note_length": 4, "lyric": "fall", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "off", "comment": "R" },
+    { "foot": "left", "note_length": 4, "lyric": "the", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "log", "comment": "R" },
+    { "foot": "left", "note_length": 4, "lyric": "stomp", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "kick", "comment": "R" },
+    { "foot": "left", "note_length": 4, "lyric": "kickback", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "rock", "comment": "R" },
+    { "foot": "left", "note_length": 4, "lyric": "step", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "ball", "comment": "R" },
+    { "foot": "left", "note_length": 4, "lyric": "tap", "comment": "L" },
+    { "foot": "right", "note_length": 4, "lyric": "heel", "comment": "R" }
+]
