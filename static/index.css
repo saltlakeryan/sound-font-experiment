@@ -308,6 +308,23 @@ select.input-control {
     align-items: center;
     gap: 12px;
     margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.editor-actions-left, .editor-actions-center, .editor-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .editor-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .editor-actions-left, .editor-actions-center, .editor-actions-right {
+        justify-content: center;
+    }
 }
 
 /* Results / Panels Right */
@@ -722,4 +739,36 @@ select.input-control {
     align-items: center;
     gap: 8px;
     animation: wobble 0.3s ease-out;
+}
+
+.control-divider {
+    color: var(--border-color);
+    margin: 0 4px;
+    user-select: none;
+}
+
+/* Custom User Presets styling */
+select.preset-select {
+    width: 175px !important;
+    padding-right: 28px !important;
+    text-overflow: ellipsis;
+}
+
+#save-preset-btn {
+    border-color: rgba(16, 185, 129, 0.4);
+    color: var(--primary);
+}
+
+#save-preset-btn:hover {
+    background-color: rgba(16, 185, 129, 0.08);
+    border-color: var(--primary);
+}
+
+#delete-preset-btn {
+    padding: 6px 10px;
+}
+
+#delete-preset-btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
 }

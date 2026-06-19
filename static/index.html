@@ -29,6 +29,14 @@
                         <span class="control-label">Load Preset:</span>
                         <button id="preset-dance" class="btn btn-secondary btn-sm">Dance Routine</button>
                         <button id="preset-charleston" class="btn btn-secondary btn-sm">Charleston Basic</button>
+                        
+                        <span class="control-divider">|</span>
+                        
+                        <select id="user-presets-select" class="input-control preset-select btn-sm">
+                            <option value="" disabled selected>Load Saved Preset...</option>
+                        </select>
+                        <button id="save-preset-btn" class="btn btn-outline btn-sm" title="Save Preset to Browser">💾 Save</button>
+                        <button id="delete-preset-btn" class="btn btn-danger btn-sm" title="Delete Selected Preset" disabled>✕</button>
                     </div>
                 </div>
 
@@ -61,13 +69,22 @@
                 </div>
 
                 <div class="editor-actions">
-                    <button id="add-row-btn" class="btn btn-outline">
-                        <span class="btn-icon">+</span> Add Event Row
-                    </button>
-                    <button id="clear-table-btn" class="btn btn-danger">Clear All</button>
-                    <button id="run-pipeline-btn" class="btn btn-primary btn-glow">
-                        Run Synthesizer Pipeline <span class="btn-arrow">→</span>
-                    </button>
+                    <div class="editor-actions-left">
+                        <button id="add-row-btn" class="btn btn-outline">
+                            <span class="btn-icon">+</span> Add Event Row
+                        </button>
+                        <button id="clear-table-btn" class="btn btn-danger">Clear All</button>
+                    </div>
+                    <div class="editor-actions-center">
+                        <button id="import-json-btn" class="btn btn-outline btn-sm">📥 Import JSON</button>
+                        <button id="export-json-btn" class="btn btn-outline btn-sm">📤 Export JSON</button>
+                        <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                    </div>
+                    <div class="editor-actions-right">
+                        <button id="run-pipeline-btn" class="btn btn-primary btn-glow">
+                            Run Synthesizer Pipeline <span class="btn-arrow">→</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 

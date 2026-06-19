@@ -13,6 +13,14 @@ const rawJsonEditor = document.getElementById('raw-json-editor');
 const jsonValidationError = document.getElementById('json-validation-error');
 let currentView = 'table';
 
+// Custom Preset Management & Import/Export Elements
+const userPresetsSelect = document.getElementById('user-presets-select');
+const savePresetBtn = document.getElementById('save-preset-btn');
+const deletePresetBtn = document.getElementById('delete-preset-btn');
+const importJsonBtn = document.getElementById('import-json-btn');
+const exportJsonBtn = document.getElementById('export-json-btn');
+const importFileInput = document.getElementById('import-file-input');
+
 const welcomeView = document.getElementById('welcome-view');
 const loadingView = document.getElementById('loading-view');
 const errorView = document.getElementById('error-view');
@@ -85,6 +93,19 @@ window.addEventListener('DOMContentLoaded', () => {
     // Wire raw JSON view toggles
     tabTable.addEventListener('click', () => switchEditorView('table'));
     tabJson.addEventListener('click', () => switchEditorView('json'));
+
+    // Preset management triggers
+    savePresetBtn.addEventListener('click', () => savePresetToBrowser());
+    deletePresetBtn.addEventListener('click', () => deletePresetFromBrowser());
+    userPresetsSelect.addEventListener('change', (e) => loadUserPreset(e.target.value));
+
+    // File import/export triggers
+    exportJsonBtn.addEventListener('click', () => exportSequence());
+    importJsonBtn.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', (e) => handleFileImport(e));
+
+    // Initial load of custom presets
+    loadSavedPresetsList();
 });
 
 // Render the entire table based on internal events array
@@ -324,6 +345,172 @@ async function runPipeline() {
         errorMessage.innerText = err.message || err;
         showView('error');
     }
+}
+
+// Custom Preset Management Operations
+function getStoredPresets() {
+    try {
+        const stored = localStorage.getItem('sf_presets');
+        return stored ? JSON.parse(stored) : {};
+    } catch (e) {
+        console.error("Failed to parse stored presets:", e);
+        return {};
+    }
+}
+
+function loadSavedPresetsList(selectName = "") {
+    // Clear dynamic options (everything except the placeholder)
+    userPresetsSelect.innerHTML = '<option value="" disabled selected>Load Saved Preset...</option>';
+    
+    const presets = getStoredPresets();
+    const sortedNames = Object.keys(presets).sort();
+    
+    sortedNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.innerText = name;
+        if (name === selectName) {
+            opt.selected = true;
+        }
+        userPresetsSelect.appendChild(opt);
+    });
+
+    // Toggle delete button based on whether a preset is currently selected
+    deletePresetBtn.disabled = !selectName;
+}
+
+function savePresetToBrowser() {
+    // Sync JSON first if in text editor view
+    if (currentView === 'json') {
+        if (!syncJsonToTable()) {
+            alert("Please fix JSON validation errors before saving!");
+            return;
+        }
+    }
+
+    if (events.length === 0) {
+        alert("Cannot save an empty sequence!");
+        return;
+    }
+
+    const name = prompt("Enter a name for this custom preset:");
+    if (!name) return; // cancelled or empty
+
+    const cleanName = name.trim();
+    if (!cleanName) return;
+
+    const presets = getStoredPresets();
+    presets[cleanName] = JSON.parse(JSON.stringify(events));
+    
+    localStorage.setItem('sf_presets', JSON.stringify(presets));
+    loadSavedPresetsList(cleanName);
+    alert(`Preset "${cleanName}" saved successfully!`);
+}
+
+function loadUserPreset(name) {
+    const presets = getStoredPresets();
+    if (presets[name]) {
+        events = JSON.parse(JSON.stringify(presets[name]));
+        renderTable();
+        
+        if (currentView === 'json') {
+            rawJsonEditor.value = JSON.stringify(events, null, 4);
+            jsonValidationError.classList.add('hidden');
+        }
+        
+        deletePresetBtn.disabled = false;
+        showView('welcome');
+    }
+}
+
+function deletePresetFromBrowser() {
+    const activePreset = userPresetsSelect.value;
+    if (!activePreset) return;
+
+    if (confirm(`Are you sure you want to delete preset "${activePreset}"?`)) {
+        const presets = getStoredPresets();
+        delete presets[activePreset];
+        localStorage.setItem('sf_presets', JSON.stringify(presets));
+        loadSavedPresetsList();
+    }
+}
+
+// File Import/Export Operations
+function exportSequence() {
+    // Sync JSON first if in text editor view
+    if (currentView === 'json') {
+        if (!syncJsonToTable()) {
+            alert("Please fix JSON validation errors before exporting!");
+            return;
+        }
+    }
+
+    if (events.length === 0) {
+        alert("Cannot export an empty sequence!");
+        return;
+    }
+
+    const jsonStr = JSON.stringify(events, null, 4);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sequence.json';
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function handleFileImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const parsed = JSON.parse(evt.target.result);
+            if (!Array.isArray(parsed)) {
+                throw new Error("JSON root must be an array.");
+            }
+            
+            // Basic schema check
+            for (let i = 0; i < parsed.length; i++) {
+                const ev = parsed[i];
+                if (typeof ev !== 'object' || ev === null) {
+                    throw new Error(`Event at index ${i} is not a valid object.`);
+                }
+                if (!ev.foot) {
+                    throw new Error(`Event at index ${i} is missing required "foot" parameter.`);
+                }
+                ev.note_length = ev.note_length !== undefined ? String(ev.note_length) : "4";
+                ev.lyric = ev.lyric !== undefined ? String(ev.lyric) : "";
+                ev.comment = ev.comment !== undefined ? String(ev.comment) : "";
+            }
+            
+            events = parsed;
+            renderTable();
+            
+            if (currentView === 'json') {
+                rawJsonEditor.value = JSON.stringify(events, null, 4);
+                jsonValidationError.classList.add('hidden');
+            }
+            
+            userPresetsSelect.selectedIndex = 0;
+            deletePresetBtn.disabled = true;
+            
+            showView('welcome');
+            alert("Sequence imported successfully!");
+            
+        } catch (err) {
+            alert(`Import Failed: ${err.message}`);
+        } finally {
+            importFileInput.value = ''; // Reset input to allow re-importing the same file
+        }
+    };
+    reader.readAsText(file);
 }
 
 // Raw JSON View Switching and Validation
