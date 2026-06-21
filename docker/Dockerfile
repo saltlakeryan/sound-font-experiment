@@ -103,7 +103,7 @@ RUN git clone https://github.com/aspiers/ly2video.git /src/ly2video && \
     cd /src/ly2video && \
     git checkout 23f7e5c923efd4d3ad74a11e2b99baa6ea4f27d7
 
-COPY ly2video-cli.py.patch /tmp/ly2video-cli.py.patch
+COPY docker/ly2video-cli.py.patch /tmp/ly2video-cli.py.patch
 
 RUN cd /src/ly2video && \
     git apply /tmp/ly2video-cli.py.patch && \
