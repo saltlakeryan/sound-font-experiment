@@ -98,8 +98,16 @@ RUN mkdir -p /usr/share/piper/models
 RUN python3 -m piper.download_voices --download-dir /usr/share/piper/models en_US-lessac-medium
 
 RUN pip install --no-cache-dir --break-system-packages mido flask Pillow pexpect
-COPY ly2video /src/ly2video
-RUN pip install --no-cache-dir --break-system-packages /src/ly2video
+
+RUN git clone https://github.com/aspiers/ly2video.git /src/ly2video && \
+    cd /src/ly2video && \
+    git checkout 23f7e5c923efd4d3ad74a11e2b99baa6ea4f27d7
+
+COPY ly2video-cli.py.patch /tmp/ly2video-cli.py.patch
+
+RUN cd /src/ly2video && \
+    git apply /tmp/ly2video-cli.py.patch && \
+    pip install --no-cache-dir --break-system-packages /src/ly2video
 
 WORKDIR /app
 
