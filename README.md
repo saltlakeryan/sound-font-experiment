@@ -5,14 +5,7 @@ SOUNDFONT FACTORY PROJECT DOCUMENTATION & OPERATIONS MANUAL
 **PRODUCT OVERVIEW**
 --------------------
 
-An automated, forward-compatible, and modular Python-based compiler pipeline
-designed to programmatically generate SoundFont (.sf2) files from scratch.
-This factory can synthesize raw mathematical wavetables (Sine, Sawtooth, Square)
-or invoke an offline local neural text-to-speech engine (Piper) to compile a
-talking vocal sampler preset bank.
-Every generated binary is strictly vetted against the RIFF/SoundFont 2
-specification using a custom alignment suite, ensuring immediate, out-of-the-box
-loading into samplers, DAWs, and editor suites like Polyphone.
+This is a work-in-progress python project that I used to explore programmatic generation of SoundFont (.sf2) files from scratch. There weren't a lot of other python-based projects for doing so--though there are good options for reading them. sf2cute seems like a good option in C++ world.  There are good docs out there for the format though. With the help of coding agents, I was able to cobble together some tools for generating soundfonts. I added a flask front-end for generating a soundfont based on spoken words by a TTS (text-to-speech) engine.  
 
 
 **WEB INTERFACE & INTEGRATED PIPELINES**
